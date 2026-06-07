@@ -1,0 +1,49 @@
+# ================================
+# LaTeX build artifacts
+# ================================
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+*.xdv
+
+# ================================
+# Manim / manim-slides outputs and caches
+# (media/ holds rendered videos/images/Tex cache; partial movie files can
+# end up nested under any scene directory)
+# ================================
+media/
+**/partial_movie_files/
+manim.cfg
+
+# ================================
+# Python
+# ================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ================================
+# OS / Editor junk
+# ================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

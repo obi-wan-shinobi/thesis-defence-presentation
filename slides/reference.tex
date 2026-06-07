@@ -1,0 +1,874 @@
+\documentclass[aspectratio=169,9pt]{beamer}
+
+% ------------------------------------------------------------------
+% Packages
+% ------------------------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage[most]{tcolorbox}
+\usepackage{ragged2e}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{movie15}
+\usepackage{pgfpages}
+
+% Look for figures both in the current folder and common subfolders.
+\graphicspath{{./}{pictures/}{figures/}}
+
+% ------------------------------------------------------------------
+% Basic Beamer setup
+% ------------------------------------------------------------------
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{headline}{}
+\setbeamersize{text margin left=10mm,text margin right=10mm}
+\renewcommand{\familydefault}{\sfdefault}
+\setbeamerfont{normal text}{size=\small}
+\setbeamerfont{frametitle}{size=\Large,series=\bfseries}
+\setbeameroption{show notes on second screen=right}
+% \setbeameroption{hide notes}
+
+% ------------------------------------------------------------------
+% Colors
+% ------------------------------------------------------------------
+\definecolor{bg}{HTML}{F8FAFC}
+\definecolor{text}{HTML}{111827}
+\definecolor{muted}{HTML}{6B7280}
+\definecolor{line}{HTML}{E5E7EB}
+\definecolor{border}{HTML}{D1D5DB}
+\definecolor{tudcyan}{HTML}{00A6D6}
+\definecolor{blue}{HTML}{2563EB}
+\definecolor{bluebg}{HTML}{EEF2FF}
+\definecolor{green}{HTML}{059669}
+\definecolor{greenbg}{HTML}{ECFDF5}
+\definecolor{orange}{HTML}{D97706}
+\definecolor{orangebg}{HTML}{FFF7ED}
+\definecolor{purple}{HTML}{7C3AED}
+\definecolor{purplebg}{HTML}{F5F3FF}
+\definecolor{graycard}{HTML}{FFFFFF}
+\definecolor{yellowbg}{HTML}{FFFBEB}
+\definecolor{redbg}{HTML}{FEF2F2}
+
+\setbeamercolor{background canvas}{bg=bg}
+\setbeamercolor{normal text}{fg=text,bg=bg}
+\setbeamercolor{author in head/foot}{bg=bg,fg=muted}
+
+% ------------------------------------------------------------------
+% Robust image helpers
+% ------------------------------------------------------------------
+% This avoids the "File TUDelft_logo.png not found" compile error.
+% If the logo file is missing, the slide still compiles and displays text instead.
+\newcommand{\tudlogo}[1][0.31cm]{%
+  \IfFileExists{TUDelft_logo.png}{\includegraphics[height=#1]{TUDelft_logo.png}}{%
+  \IfFileExists{pictures/TUDelft_logo.png}{\includegraphics[height=#1]{pictures/TUDelft_logo.png}}{%
+  \IfFileExists{figures/TUDelft_logo.png}{\includegraphics[height=#1]{figures/TUDelft_logo.png}}{%
+  \textcolor{tudcyan}{\bfseries TU Delft}}}}%
+}
+
+\newcommand{\safeimage}[2][]{%
+  \IfFileExists{#2}{\includegraphics[#1]{#2}}{%
+    \fbox{\parbox[c][32mm][c]{0.88\linewidth}{\centering\scriptsize Missing image:\\#2}}%
+  }%
+}
+
+% ------------------------------------------------------------------
+% Background, border, footer
+% ------------------------------------------------------------------
+\setbeamertemplate{background}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[bg] (current page.south west) rectangle (current page.north east);
+    \draw[border,line width=0.55pt]
+      ([xshift=4mm,yshift=4mm]current page.south west) rectangle
+      ([xshift=-4mm,yshift=-4mm]current page.north east);
+    \fill[tudcyan]
+      ([xshift=4mm,yshift=-4mm]current page.north west) rectangle
+      ([xshift=5.6mm,yshift=4mm]current page.south west);
+  \end{tikzpicture}%
+}
+
+\setbeamertemplate{footline}{%
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=\paperwidth,ht=4.8ex,dp=1.2ex,leftskip=10mm,rightskip=10mm]{author in head/foot}%
+      \tudlogo[0.31cm]\hfill
+      {\tiny\textcolor{muted}{Training Dynamics of Overparameterized Neural Networks\quad |\quad \insertframenumber}}
+    \end{beamercolorbox}%
+  }%
+}
+
+% ------------------------------------------------------------------
+% Card styles and commands
+% ------------------------------------------------------------------
+\tcbset{
+  sharp corners=downhill,
+  arc=2mm,
+  boxrule=0.35pt,
+  left=2.2mm,
+  right=2.2mm,
+  top=1.4mm,
+  bottom=1.4mm,
+  before skip=0pt,
+  after skip=0pt
+}
+\newtcolorbox{whitecard}[1][]{colback=graycard,colframe=line,#1}
+\newtcolorbox{bluecard}[1][]{colback=bluebg,colframe=blue!25,#1}
+\newtcolorbox{greencard}[1][]{colback=greenbg,colframe=green!25,#1}
+\newtcolorbox{orangecard}[1][]{colback=orangebg,colframe=orange!28,#1}
+\newtcolorbox{purplecard}[1][]{colback=purplebg,colframe=purple!25,#1}
+\newtcolorbox{yellowcard}[1][]{colback=yellowbg,colframe=orange!25,#1}
+
+% Slide heading helper.
+% The old heading started flush with the physical top of the page, so the
+% small all-caps labels (SETUP, REFERENCE MODEL, etc.) could sit outside the
+% visible safe area in some PDF viewers/projectors. This version adds a small
+% top inset and keeps the label in a compact, bounded line.
+\newcommand{\tagline}[1]{%
+  \if\relax\detokenize{#1}\relax
+  \else
+    {\textcolor{tudcyan}{\fontsize{5.4}{6.2}\selectfont\bfseries #1}}\par\vspace{1mm}%
+  \fi
+}
+
+\newcommand{\slidetitle}[2]{%
+  \vspace*{4.6mm}%
+  \noindent\begin{minipage}{\linewidth}
+    \tagline{#1}%
+    {\fontsize{12}{15.5}\selectfont\bfseries #2}\par\vspace{0.6mm}
+    {\color{line}\rule{\linewidth}{0.35pt}}\par\vspace{1.2mm}
+  \end{minipage}%
+}
+\newcommand{\pill}[3]{\tikz[baseline=-0.5ex]{\node[rounded corners=2mm, fill=#2, text=#3, inner xsep=7pt, inner ysep=3pt, font=\scriptsize\bfseries] {#1};}}
+\newcommand{\questionnum}[2]{\tikz[baseline=-0.5ex]{\node[circle, fill=#1, text=white, inner sep=2.1pt, font=\scriptsize\bfseries] {#2};}}
+\newcommand{\tightlist}{\setlength\itemsep{1.3pt}\setlength\parskip{0pt}\setlength\parsep{0pt}}
+
+% ------------------------------------------------------------------
+\begin{document}
+
+% ------------------------------------------------------------------
+% Title slide
+% ------------------------------------------------------------------
+\begin{frame}[plain,noframenumbering]
+	\vspace{3mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.62\textwidth}
+			\vspace{3em}
+			{\fontsize{15}{27}\selectfont\bfseries Training Dynamics of\\Overparameterized Neural Networks}\par\vspace{2.5mm}
+			{\Large A Study of Spectral Bias on $S^1$}\par
+			\vspace{5mm}
+			{\large Shreyas Kalvankar}\par\vspace{1mm}
+			{\small MSc Computer Science, TU Delft}\par
+			\vspace{6mm}
+			{\scriptsize\textcolor{muted}{Advisor: Dr. D. M. J. Tax\\ Supervisor: Dr. A. Heinlein}}\par
+		\end{column}
+		\begin{column}{0.32\textwidth}
+			\vspace{3mm}
+			\begin{whitecard}[height=60mm]
+				\centering
+				\tudlogo[1.1cm]\par\vspace{7mm}
+				\pill{Spectral Bias}{bluebg}{blue}\par\vspace{2.5mm}
+				\pill{NTK on $S^1$}{greenbg}{green}\par\vspace{2.5mm}
+				\pill{Fourier Analysis}{yellowbg}{orange}\par\vspace{2.5mm}
+				\pill{Finite-Scale Bounds}{purplebg}{purple}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
+	\vfill
+	{\color{line}\rule{\linewidth}{0.35pt}}\vspace{1mm}
+	{\tiny\textcolor{muted}{May 2026}\hfill\textcolor{muted}{TU Delft}}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{
+		Spectral bias is the tendency of neural networks trained with gradient descent to learn low-frequency structure before high-frequency detail.
+
+		In other words, the network first captures the smooth, global shape of the target, and only later fits the more oscillatory parts.
+
+		That is what these examples are meant to show. Even though the architectures are different, the learning process has the same qualitative pattern: low-frequency modes appear early, high-frequency modes are delayed.
+
+		My thesis asks whether we can explain this from the training dynamics.
+
+		The main idea is to reformulate spectral bias as an operator eigenvalue problem. If an operator governs the residual dynamics, then its eigenvalues determine which frequencies are learned quickly and which ones are learned slowly.
+
+		So the three guiding questions are: what controls mode-wise learning rates, does the explanation survive finite data, and does it survive finite width?
+	}
+	\vspace{0.5em}
+	\slidetitle{}{Why does gradient descent learn simple structure first?}
+	{\small\textcolor{muted}{A spectral view of training dynamics}}
+
+	\vspace{1.8mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.60\textwidth}
+			\begin{bluecard}[height=22mm]
+				\textcolor{purple}{\scriptsize\bfseries Thesis in one sentence}\par\vspace{1mm}
+				{\scriptsize Reformulate spectral bias as an operator eigenvalue problem, then quantify how the picture changes at finite sample size and finite network width.}
+			\end{bluecard}
+		\end{column}
+		\begin{column}{0.36\textwidth}
+			\begin{whitecard}[height=23mm]
+				{\scriptsize\bfseries Three questions}\par\vspace{1.3mm}
+				\questionnum{blue}{1}\quad {\tiny What controls mode-wise learning rates?}\par\vspace{1.2mm}
+				\questionnum{green}{2}\quad {\tiny Does the explanation survive finite data?}\par\vspace{1.2mm}
+				\questionnum{orange}{3}\quad {\tiny Does it survive finite width?}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{2mm}
+	\begin{whitecard}
+		\begin{minipage}{\linewidth}
+			\raisebox{1.4mm}{\scriptsize\bfseries Low-frequency structure is learned before high-frequency detail.}
+			\hfill
+			\includegraphics[width=0.40\linewidth]{legend.png}
+		\end{minipage}
+		\begin{columns}[T,onlytextwidth]
+			\begin{column}{0.32\textwidth}
+				\centering
+				\movie[
+					width=0.86\linewidth,
+					height=0.484\linewidth,
+					poster,
+					autostart,
+					loop,
+					showcontrols=false
+				]{\phantom{\rule{0.86\linewidth}{0.484\linewidth}}}{spectral_bias_mlp_single_layer.mp4}\par\vspace{0.5mm}
+				{\tiny One-hidden-layer MLP}
+			\end{column}
+
+			\begin{column}{0.32\textwidth}
+				\centering
+				\movie[
+					width=0.86\linewidth,
+					height=0.484\linewidth,
+					poster,
+					autostart,
+					loop,
+					showcontrols=false
+				]{\phantom{\rule{0.86\linewidth}{0.484\linewidth}}}{spectral_bias_mlp_deep_2_layer.mp4}\par\vspace{0.5mm}
+				{\tiny Two-hidden-layer MLP}
+			\end{column}
+
+			\begin{column}{0.32\textwidth}
+				\centering
+				\movie[
+					width=0.86\linewidth,
+					height=0.484\linewidth,
+					poster,
+					autostart,
+					loop,
+					showcontrols=false
+				]{\phantom{\rule{0.86\linewidth}{0.484\linewidth}}}{spectral_bias_attention_block.mp4}\par\vspace{0.5mm}
+				{\tiny Attention Block}
+			\end{column}
+		\end{columns}
+	\end{whitecard}
+\end{frame}
+
+% % ------------------------------------------------------------------
+% \begin{frame}
+% 	\slidetitle{}{Why does gradient descent learn simple structure first?}
+% 	\vspace{-1mm}
+% 	{\textcolor{muted}{A spectral view of training dynamics on $S^1$}}
+%
+% 	\vspace{3.5mm}
+% 	\begin{columns}[T,onlytextwidth]
+% 		\begin{column}{0.57\textwidth}
+% 			\begin{bluecard}[height=27mm]
+% 				\textcolor{purple}{\scriptsize\bfseries Thesis in one sentence}\par\vspace{1.8mm}
+% 				Reformulate spectral bias as an operator eigenvalue problem, then quantify how the picture changes at finite sample size and finite network width.
+% 			\end{bluecard}
+% 		\end{column}
+% 		\begin{column}{0.36\textwidth}
+% 			\begin{whitecard}[height=40mm]
+% 				{\scriptsize\bfseries Three questions}\par\vspace{2.5mm}
+% 				\questionnum{blue}{1}\quad {\scriptsize What controls mode-wise learning rates?}\par\vspace{2.5mm}
+% 				\questionnum{green}{2}\quad {\scriptsize Does the explanation survive finite data?}\par\vspace{2.5mm}
+% 				\questionnum{orange}{3}\quad {\scriptsize Does it survive finite width?}
+% 			\end{whitecard}
+% 		\end{column}
+% 	\end{columns}
+%
+% 	\vspace{3.5mm}
+% 	\centering
+% 	\pill{Spectral bias}{bluebg}{blue}\quad $\longrightarrow$\quad
+% 	\pill{NTK on $S^1$}{greenbg}{green}\quad $\longrightarrow$\quad
+% 	\pill{Finite samples}{yellowbg}{orange}\quad $\longrightarrow$\quad
+% 	\pill{Finite width}{purplebg}{purple}
+%
+% \end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{
+		\begin{itemize}
+			\item Use $S^1$ because functions on the circle have a natural Fourier decomposition.
+			\item This lets me track learning frequency by frequency.
+			\item Model: one-hidden-layer ReLU MLP in NTK scaling.
+			\item The Neural Tangent Kernel is the bridge from parameter updates to function evolution.
+			\item Instead of tracking every weight, it tells me how gradient descent changes the network prediction.
+			\item Hence, the NTK translates gradient descent on weights into an operator acting on functions. That is the bridge I use to study learning spectrally.
+			\item Residual:
+			      \[
+				      r_t=f_t-y.
+			      \]
+			\item Gradient flow gives:
+			      \[
+				      \partial_t r_t=-T_t^{(m)}r_t.
+			      \]
+			\item Key question: what controls the decay of
+			      \[
+				      \alpha_k(t)=\langle r_t,\phi_k\rangle?
+			      \]
+		\end{itemize}
+	}
+	\slidetitle{SETUP}{Setting: regression on $S^1$}
+	\vspace{-1mm}
+	{\textcolor{muted}{$S^1$: functions on the circle have a natural Fourier decomposition.}}
+
+	\vspace{1mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.31\textwidth}
+			\pause
+			\begin{bluecard}[height=43mm]
+				{\textcolor{blue}{\bfseries Domain + target}}\par\vspace{2mm}
+				\[
+					x(\varphi)=(\cos\varphi,\sin\varphi)\in S^1
+				\]
+				\vspace{-1mm}
+				\[
+					y(\varphi)=\sum_k c_k\phi_k(\varphi)
+				\]
+				\vspace{-1mm}
+				{\scriptsize Fourier basis: $1$, $\cos(k\varphi)$, $\sin(k\varphi)$.}
+			\end{bluecard}
+		\end{column}
+
+		\begin{column}{0.32\textwidth}
+			\pause
+			\begin{greencard}[height=43mm]
+				{\textcolor{green}{\bfseries Network}}\par\vspace{1.5mm}
+				{\scriptsize
+					\[
+						f_m(x;\theta)
+						=
+						\frac{1}{\sqrt m}
+						\sum_{i=1}^m
+						a_i\,\sigma(z_i)
+					\]
+					\vspace{-2mm}
+					\[
+						z_i=w_i^\top x+b_i
+					\]
+				}
+				\vspace{-1mm}
+				{\scriptsize
+					\[
+						\sigma(u)=\max\{0,u\}
+					\]
+				}
+				\vspace{-2mm}
+				{\scriptsize
+					\[
+						a_i, w_i \sim \mathcal N(0,I), \quad b_i = 0
+					\]
+				}
+			\end{greencard}
+		\end{column}
+
+		\begin{column}{0.31\textwidth}
+			\pause
+			\begin{orangecard}[height=43mm]
+				{\textcolor{orange}{\bfseries Training dynamics}}\par\vspace{2mm}
+				\[
+					\partial_t r_t=-T_t^{(m)}r_t
+				\]
+				\vspace{-2mm}
+				\[
+					r_t=f_t-y
+				\]
+				\vspace{-1mm}
+				{\centering \scriptsize $T_t^{(m)}$ is the tangent operator.}
+			\end{orangecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{2.4mm}
+	\pause
+	\begin{whitecard}
+		\centering
+		{\bfseries Key question:} what governs the frequency-dependent decay of $\alpha_k(t)=\langle r_t,\phi_k\rangle$?
+	\end{whitecard}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{
+		\begin{itemize}
+			\item Start with the cleanest reference model: infinite width and continuum data.
+			\item Oversimplifying slightly: the NTK measures how similarly two inputs respond to parameter changes.
+			      item If two inputs have similar parameter gradients, an update for one also affects the other.
+			      At finite width, the NTK is random because it depends on initialization.
+			      But it is an average over neurons, so as $m\to\infty$ it converges to a deterministic limit.
+			      The parameter movement becomes small enough that the limiting kernel stays fixed during training.
+			      This gives a fixed operator $T_\infty$ for the residual dynamics.
+			\item On $S^1$ with uniform measure, the limiting kernel only depends on angular difference:
+			\item Main point: eigenvalue = learning rate.
+			\item Explicit eigenvalues show $\lambda_k\sim k^{-2}$.
+			\item Low frequencies decay faster; high frequencies are delayed.
+			\item This is the exact reference model for the rest of the thesis.
+		\end{itemize}
+	}
+	\slidetitle{REFERENCE MODEL}{The ideal picture: infinite-width MLP on $S^1$}
+	\pause
+	{\small\textcolor{muted}{With the uniform measure $\mu(d\varphi)=d\varphi/(2\pi)$, the infinite-width NTK is a fixed convolution operator.}}
+	{\textcolor{muted}{At infinite width and in the continuum, spectral bias becomes an eigenvalue statement.}}
+
+	\vspace{1mm}
+	\begin{columns}[T,onlytextwidth]
+		\pause
+		\begin{column}{0.31\textwidth}
+			\begin{bluecard}[height=21mm]
+				\[
+					\partial_t r_t=-T_\infty r_t
+				\]
+				\centering{\scriptsize fixed NTK integral operator}
+			\end{bluecard}
+		\end{column}
+		\pause
+		\begin{column}{0.31\textwidth}
+			\begin{greencard}[height=21mm]
+				\[
+					T_\infty\phi_k=\lambda_k\phi_k
+				\]
+				\centering{\scriptsize Fourier modes are eigenfunctions}
+			\end{greencard}
+		\end{column}
+		\pause
+		\begin{column}{0.31\textwidth}
+			\begin{orangecard}[height=21mm]
+				\[
+					\alpha_k(t)=e^{-\lambda_k t}\alpha_k(0)
+				\]
+				\centering{\scriptsize rate = eigenvalue}
+			\end{orangecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{1mm}
+	\begin{columns}[T,onlytextwidth]
+		\pause
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[height=34mm]
+				{\scriptsize\bfseries Explicit eigenvalues}\par\vspace{0.5mm}
+				{\tiny
+					\[
+						\lambda_k =
+						\begin{cases}
+							\displaystyle \frac14+\frac{2}{\pi^2},
+							 & k=0,                 \\[0.4mm]
+							\displaystyle \frac14+\frac{1}{\pi^2},
+							 & k=1,                 \\[0.4mm]
+							\displaystyle \frac{k^2+3}{\pi^2(k^2-1)^2},
+							 & k\ge 2 \text{ even}, \\[0.4mm]
+							\displaystyle \frac{1}{\pi^2 k^2},
+							 & k\ge 3 \text{ odd}.
+						\end{cases}
+					\]
+				}
+			\end{whitecard}
+		\end{column}
+
+		\pause
+		\begin{column}{0.46\textwidth}
+			\begin{bluecard}[height=20mm]
+				{\scriptsize\bfseries Interpretation}\par\vspace{1mm}
+				\begin{itemize}\tightlist\tiny
+					\item Small $k$ have larger eigenvalues, so low frequencies decay faster.
+					\item For large $k$, $\lambda_k\sim k^{-2}$, so high frequencies are delayed.
+				\end{itemize}
+			\end{bluecard}
+
+			\vspace{2mm}
+
+			\pause
+			\begin{whitecard}[height=11mm]
+				\centering
+				{\tiny\bfseries Reference model:}
+				{\tiny exact Fourier dynamics at infinite width and in the continuum.}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
+
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{
+		\begin{itemize}
+			\item The ideal model is useful only if we understand its perturbations.
+			\item Perturbation 1: finite samples.
+			\item Replace continuum measure by random sample points:
+			      \[
+				      \mu \rightsquigarrow \frac1n\sum_i\delta_{\varphi_i}.
+			      \]
+			\item This breaks exact Fourier orthogonality and exact diagonalization.
+			\item Question: do Fourier modes still behave approximately like eigenvectors of the sampled operator?
+			\item Perturbation 2: frozen finite width.
+			\item Replace deterministic $T_\infty$ by random finite-width tangent operator $T_m^{(0)}$.
+			\item Question: are Fourier eigenspaces and learning rates preserved?
+			\item Main theoretical part: control both finite data and frozen finite width.
+		\end{itemize}
+	}
+	\slidetitle{THESIS QUESTION}{Does this spectral picture survive outside the ideal limit?}
+
+	\visible<2->{
+		{\textcolor{muted}{The ideal model is useful only if we understand its perturbations.}}
+	}
+
+	\vspace{3mm}
+	\begin{columns}[T,onlytextwidth]
+		% ----------------------------------------------------------
+		% Finite samples
+		% ----------------------------------------------------------
+		\begin{column}{0.45\textwidth}
+			\visible<2->{
+				\begin{yellowcard}[height=53mm]
+					{\textcolor{orange}{\scriptsize\bfseries Perturbation I}}\par\vspace{1mm}
+					{\bfseries Finite samples}\par\vspace{3mm}
+
+					\[
+						\mu
+						\quad\rightsquigarrow\quad
+						\frac1n\sum_{i=1}^n\delta_{\varphi_i}
+					\]
+
+					\vspace{1mm}
+					{\scriptsize Replace the continuous measure by $n$ random points on $S^1$.}\par\vspace{3.5mm}
+
+					\visible<3->{
+						{\textcolor{orange}{\scriptsize\bfseries Question}}\par
+						{\scriptsize Do Fourier modes still behave like eigenvectors of the sampled operator?}
+					}
+				\end{yellowcard}
+			}
+		\end{column}
+
+		% ----------------------------------------------------------
+		% VS marker
+		% ----------------------------------------------------------
+		\begin{column}{0.06\textwidth}
+			\visible<4->{
+				\centering\vspace{28mm}
+				\tikz{\node[circle, draw=line, fill=white, inner sep=2.8pt, font=\tiny\bfseries] {vs};}
+			}
+		\end{column}
+
+		% ----------------------------------------------------------
+		% Finite width
+		% ----------------------------------------------------------
+		\begin{column}{0.45\textwidth}
+			\visible<4->{
+				\begin{purplecard}[height=53mm]
+					{\textcolor{purple}{\scriptsize\bfseries Perturbation II}}\par\vspace{1mm}
+					{\bfseries Frozen finite width}\par\vspace{3mm}
+
+					\[
+						T_\infty
+						\quad\rightsquigarrow\quad
+						T_m^{(0)}
+					\]
+
+					\vspace{1mm}
+					{\scriptsize Replace the infinite-width operator by the finite-width tangent operator at initialization.}\par\vspace{3.5mm}
+
+					\visible<5->{
+						{\textcolor{purple}{\scriptsize\bfseries Question}}\par
+						{\scriptsize Does the finite-width tangent operator preserve the Fourier eigenspaces and learning rates?}
+					}
+				\end{purplecard}
+			}
+		\end{column}
+	\end{columns}
+
+	\vspace{1.5mm}
+	\visible<5->{
+		{\centering\scriptsize\textcolor{muted}{Both perturbations break exact diagonalization; the goal is to quantify the finite-scale error.}\par}
+	}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{
+		\begin{itemize}
+			\item $\Phi$ is a matrix whose columns are the Fourier modes upto K frequency,
+			      and rows are those Fourier modes evaluated on the sampled points.
+			\item \(A\) is the kernel matrix on the sampled points. Then G checks what the sample does to the Fourier coordinates, and H checks what the sampled kernel looks like in those coordinates.
+			\item On the finite-width side, is the finite-width operator restricted to the low Fourier modes, and \(\Lambda_K\)
+			      is the ideal infinite-width reference.
+
+			\item Bounds say finite-scale objects stay close to continuum objects.
+			\item Finite-sample errors scale like $n^{-1/2}$, up to logarithmic factors.
+			\item Frozen finite-width error scales like $m^{-1/2}$, up to logarithmic factors.
+			\item Main message: Fourier structure survives finite sampling and frozen finite width with explicit high-probability control.
+		\end{itemize}
+	}
+	\slidetitle{NON-ASYMPTOTIC CONTROL}{Main results: explicit finite-scale error bounds}
+	{\small\textcolor{muted}{On a fixed low-frequency Fourier subspace $\mathcal H_K$ with $d=2K+1$, both perturbations are controlled.}}
+
+	\vspace{1.5mm}
+	\begin{columns}[T,onlytextwidth]
+		% ----------------------------------------------------------
+		% Finite samples
+		% ----------------------------------------------------------
+		\begin{column}{0.49\textwidth}
+			\begin{yellowcard}[height=45mm]
+				{\textcolor{orange}{\bfseries Finite samples}}
+				\hfill
+				{\scriptsize\only<1-5>{}\only<6>{Thm. 5.5 + Cor. 5.6}}
+				\par\vspace{1mm}
+
+				\only<1-5>{
+					{\scriptsize On the Fourier block $\mathcal H_K$:}\par\vspace{1mm}
+
+					\visible<1->{
+						\begin{whitecard}[height=8mm,valign=center]
+							\centering
+							{\scriptsize $\displaystyle A_{ij}=\frac1n T_\infty(\theta_i,\theta_j)$}
+						\end{whitecard}
+					}
+
+
+					\visible<2->{
+						\begin{whitecard}[height=8mm,valign=center]
+							\centering
+							{\scriptsize $\displaystyle G=\frac1n\Phi^\top\Phi$}
+						\end{whitecard}
+					}
+
+
+					\visible<3->{
+						\begin{whitecard}[height=8mm,valign=center]
+							\centering
+							{\scriptsize $\displaystyle H=\frac1n\Phi^\top A\Phi$}
+						\end{whitecard}
+					}
+				}
+
+				\only<6>{
+					{\scriptsize With probability at least $1-\delta$:}\par\vspace{0mm}
+
+					\begin{whitecard}[height=30mm,valign=center]
+						\centering
+						{\vspace{-1em}
+							\tiny
+							\[
+								\begin{aligned}
+									\|G-I\|_{\max}
+									 & \le
+									C_1\sqrt{\frac{\log(d/\delta)}{n}},
+									\\[0.6mm]
+									\|H-\Lambda^{(n)}\|_{\max}
+									 & \le
+									C_2\sqrt{\frac{\log(d/\delta)}{n}},
+									\\[0.6mm]
+									\|A\Phi-\Phi\Lambda^{(n)}\|_{\max}
+									 & \le
+									C_3\sqrt{\frac{\log(nd/\delta)}{n}}.
+								\end{aligned}
+							\]
+						}
+					\end{whitecard}
+				}
+			\end{yellowcard}
+		\end{column}
+
+		% ----------------------------------------------------------
+		% Frozen finite width
+		% ----------------------------------------------------------
+		\begin{column}{0.47\textwidth}
+			\begin{purplecard}[height=45mm]
+				{\textcolor{purple}{\bfseries Frozen finite width}}
+				\hfill
+				{\scriptsize\only<1-5>{}\only<6>{Thm. 5.7}}
+				\par\vspace{1mm}
+
+				\only<1-5>{
+					{\scriptsize Compress the finite-width tangent operator at initialization to $\mathcal H_K$:}\par\vspace{1mm}
+
+					\visible<4->{
+						\begin{whitecard}[height=10mm,valign=center]
+							\centering
+							{\scriptsize $\displaystyle B_m^{(K)}=P_KT_m^{(0)}P_K$}
+						\end{whitecard}
+					}
+
+					\vspace{1.2mm}
+
+					\visible<5->{
+						\begin{whitecard}[height=10mm,valign=center]
+							\centering
+							{\scriptsize $\displaystyle \Lambda_K=P_KT_\infty P_K$}
+						\end{whitecard}
+					}
+				}
+
+				\only<6>{
+					{\scriptsize With probability at least $1-\delta$:}\par\vspace{1mm}
+
+					\begin{whitecard}[height=10mm,valign=center]
+						\centering
+						{\scriptsize $\displaystyle \mathbb{E}\,B_m^{(K)}=\Lambda_K$}
+					\end{whitecard}
+
+					\vspace{1.2mm}
+
+					\begin{whitecard}[height=14mm,valign=center]
+						\centering
+						{\scriptsize
+						$\displaystyle
+							\|B_m^{(K)}-\Lambda_K\|_{\max}
+							\le
+							C_4\sqrt{\frac{\log(d/\delta)}{m}}
+						$
+						}
+					\end{whitecard}
+				}
+			\end{purplecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{1.5mm}
+	\only<6>{
+		\begin{whitecard}[height=9mm,valign=center]
+			\centering
+			{\scriptsize\bfseries Summary:}
+			{\scriptsize Fourier structure survives finite sampling and frozen finite width with explicit high-probability control.}
+		\end{whitecard}
+	}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{
+		\begin{itemize}
+			\item So far, the story has been: start from the ideal operator, then control finite-sample and frozen finite-width errors.
+			\item But this still leaves out normal training.
+			\item In normal training, the tangent kernel is allowed to move:
+			      \[
+				      T_0^{(m)} \rightsquigarrow T_t^{(m)}.
+			      \]
+			\item The question is whether that movement actually matters.
+			\item At $m=128$, it clearly does: the evolving kernel reaches much lower loss than the frozen one.
+			\item At $m=1024$, the advantage mostly disappears.
+			\item So kernel evolution seems to be a genuine small-width effect.
+			\item This is the main tension: finite width can improve learning by changing the operator, but it also breaks the clean spectral reference model.
+		\end{itemize}
+	}
+	\slidetitle{EVOLVING KERNEL}{A finite-width effect not explained by the frozen NTK}
+	{\textcolor{muted}{After controlling the frozen operator, the next question is whether training changes the operator enough to matter.}}
+
+	\pause
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}
+				\centering
+				\safeimage[height=30mm, width=\linewidth, keepaspectratio]{train_ls_frozen_vs_evolving_w128.png}\par
+				{\scriptsize width $m=128$: evolving kernel reaches much lower loss}
+			\end{whitecard}
+		\end{column}
+		\pause
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}
+				\centering
+				\safeimage[height=30mm, width=\linewidth, keepaspectratio]{train_ls_frozen_vs_evolving_w1024.png}\par
+				{\scriptsize width $m=1024$: frozen picture becomes competitive}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{1.5mm}
+	\begin{bluecard}
+		\begin{itemize}\tightlist\scriptsize
+			\item At small width, the evolving network is not well described by simply freezing the NTK at initialization.
+			\item As width grows, the difference between frozen and evolving dynamics becomes much smaller.
+			\item This creates the main tension: finite width can help by changing the kernel, but it also breaks the clean spectral reference model.
+		\end{itemize}
+	\end{bluecard}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{
+		\begin{itemize}
+			\item The equation still has the same shape:
+			      \[
+				      \partial_t r_t=-T_t^{(m)}r_t.
+			      \]
+			\item But now $T_t^{(m)}$ is allowed to change while the network trains.
+			\item So the network is not only following a fixed learning rule; the learning rule itself is changing.
+			\item At small width, this change is quite visible.
+			\item The kernel can become stronger on the low-frequency parts of the target.
+			\item This helps explain why the evolving network can reduce the loss faster.
+			\item But there is also a downside: the clean Fourier picture becomes less exact.
+			\item So kernel evolution has two sides: it can help learning, but it makes the theory harder.
+			\item For finite samples and frozen finite width, I can prove concentration bounds.
+			\item For normal training, the harder object is:
+			      \[
+				      T_t^{(m)}-T_0^{(m)}.
+			      \]
+			\item In words: can we control how much the learning operator moves during training?
+			\item Thesis takeaway: start with an exact spectral model, prove when it survives finite scale, and identify where normal finite-width training goes beyond it.
+		\end{itemize}
+	}
+	\slidetitle{BEYOND FROZEN NTK}{What changes when the operator moves?}
+	{\textcolor{muted}{The evolving-kernel regime keeps the same residual equation, but the operator is now time-dependent.}}
+
+	\vspace{2.5mm}
+	\centering
+	\begin{bluecard}[width=0.40\linewidth]
+		\[
+			\partial_t r_t=-T_t^{(m)}r_t
+		\]
+		\centering{\scriptsize the learning operator changes during training}
+	\end{bluecard}
+
+	\vspace{3mm}
+	\pause
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.47\textwidth}
+			\begin{bluecard}[height=25mm]
+				{\textcolor{blue}{\bfseries Empirical picture}}\par\vspace{0.8mm}
+				\begin{itemize}\scriptsize
+					\item Small widths show substantial kernel movement.
+					\item Low-frequency spectral strength can increase.
+					\item This can accelerate training loss decay.
+					\item But eigenspaces can drift away from the Fourier reference.
+				\end{itemize}
+			\end{bluecard}
+		\end{column}
+		\begin{column}{0.47\textwidth}
+			\begin{orangecard}[height=25mm]
+				{\textcolor{orange}{\bfseries Theoretical gap}}\par\vspace{0.8mm}
+				{\scriptsize The finite-sample and frozen-width regimes are controlled by concentration.}\par\vspace{1.5mm}
+				{\scriptsize For the evolving kernel, one would need non-asymptotic control of $T_t^{(m)}-T_0^{(m)}$ over training time.}
+			\end{orangecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{2.5mm}
+	\begin{whitecard}
+		\centering
+		{\scriptsize\bfseries Thesis takeaway:}
+		{\scriptsize the frozen NTK gives a controlled spectral reference; finite-width training shows where that reference becomes insufficient.}
+	\end{whitecard}
+
+	\vspace{1mm}
+	\centering
+	{\scriptsize Future direction: mathematical structure in function space as an explanation for training and generalization.}
+\end{frame}
+
+\end{document}

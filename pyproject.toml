@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "defence-presentation"
+version = "0.1.0"
+description = "Build tooling for the MSc thesis defence Beamer deck"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.setuptools]
+packages = []
