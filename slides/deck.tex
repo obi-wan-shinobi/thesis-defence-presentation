@@ -7,6 +7,19 @@
 \usepackage{style}
 
 % ------------------------------------------------------------------
+% Per-deck settings — adjust these here, not in style.sty, since they
+% depend on where this particular deck's assets live and how you are
+% currently using it (rehearsing with notes vs. exporting for the audience).
+% ------------------------------------------------------------------
+% Look for figures both in the current folder and common subfolders.
+\graphicspath{{./}{assets/}{pictures/}{figures/}{figures/regenerated/}}
+
+% Speaker notes: show them on a second screen while presenting.
+% Swap to \setbeameroption{hide notes} for an audience-facing export.
+% \setbeameroption{show notes on second screen=right}
+\setbeameroption{hide notes}
+
+% ------------------------------------------------------------------
 \begin{document}
 
 % ------------------------------------------------------------------
@@ -48,17 +61,15 @@
 		We open by showing the target function as a sum of frequency components, built up coarse-to-fine: first the broad, low-frequency shape, then progressively finer high-frequency detail. This is the object the rest of the talk is about. The natural question it raises -- and the one the rest of the talk answers -- is: how do we learn it?
 	}
 
-	\vspace{6mm}
+	\vspace{2mm}
 	\centering
 	{\large\textcolor{muted}{A function is built from a coarse shape plus finer and finer detail.}}
 
-	\vspace{4mm}
+	\vspace{1.5mm}
 
-	\begin{minipage}{0.8\linewidth}
-		\placeholder[48mm]{[Manim] Target function built up from low-frequency to high-frequency components}
-	\end{minipage}
+	\includegraphics[width=0.8\linewidth]{target_construction_poster.png}
 
-	\vspace{5mm}
+	\vspace{1.5mm}
 
 	\begin{bluecard}[width=0.6\linewidth]
 		\centering{\Large\bfseries How do we learn this function?}
