@@ -1,0 +1,48 @@
+% Self-contained TikZ snippet — "examples become a function".
+% No preamble/document: meant to be pulled into a slide with \input (bare
+% filename, matching figures/mlp_diagram.tex; \input@path includes figures/).
+% Abstract regression picture: scattered dots + one smooth curve threading
+% near them. Uses the deck's palette (text, muted, tudcyan, line, border).
+%
+% STAGING HOOKS: the dots and the curve are each wrapped in a one-argument
+% macro (\fitdotsoverlay / \fitcurveoverlay) so a slide can stage them with
+% Beamer overlays, e.g.
+%     \renewcommand{\fitdotsoverlay}[1]{\visible<1->{#1}}
+%     \renewcommand{\fitcurveoverlay}[1]{\visible<2->{#1}}
+%   BEFORE \input-ing this file. They default to identity (show everything),
+% so the figure stays reusable as a plain static picture and no overlay specs
+% are hardcoded here. The axes/frame are always drawn (visible from step 1).
+\providecommand{\fitdotsoverlay}[1]{#1}
+\providecommand{\fitcurveoverlay}[1]{#1}
+\begin{tikzpicture}[
+		x=1mm, y=1mm,
+		dot/.style={circle, fill=text, inner sep=0pt, minimum size=1.5mm},
+		axis/.style={draw=border, line width=0.5pt, ->}
+	]
+	% --- plain, unlabelled axes (always visible) ---
+	\draw[axis] (0, 0) -- (44, 0);   % x-axis
+	\draw[axis] (0, 0) -- (0, 30);   % y-axis
+	\node[text=muted, font=\scriptsize, anchor=north] at (42, -2.2) {$x$};
+	\node[text=muted, font=\scriptsize, anchor=east] at (-1.2, 29) {$y$};
+
+	% --- the fitted curve (smooth, tudcyan) threading near the dots ---
+	% Drawn before the dots so the dots sit on top when both are shown.
+	\fitcurveoverlay{%
+		\draw[tudcyan, line width=1pt, smooth, tension=0.7]
+		plot coordinates {(3,7) (10,15) (18,21) (26,17) (33,11) (40,16)};
+		\node[text=muted, font=\scriptsize, anchor=north] at (17, 26) {$f(x)$};
+	}
+
+	% --- ~9 scattered data points sitting NEAR the curve, not exactly on it ---
+	\fitdotsoverlay{%
+		\node[dot] at (4, 9)   {};
+		\node[dot] at (9, 13)  {};
+		\node[dot] at (13, 18) {};
+		\node[dot] at (18, 19) {};
+		\node[dot] at (22, 20) {};
+		\node[dot] at (26, 15) {};
+		\node[dot] at (31, 13) {};
+		\node[dot] at (36, 12) {};
+		\node[dot] at (41, 18) {};
+	}
+\end{tikzpicture}

@@ -6,13 +6,40 @@
 % ------------------------------------------------------------------
 \usepackage{style}
 
+\newcommand{\R}{\mathbb{R}}
+
+% Beamer's multimedia support: lets \movie embed a video that autostarts and
+% loops when played in a PDF viewer that supports it (e.g. Pympress).
+% Replaces the deprecated movie15/media9 route — no conflict with hyperref.
+\usepackage{multimedia}
+
 % ------------------------------------------------------------------
 % Per-deck settings — adjust these here, not in style.sty, since they
 % depend on where this particular deck's assets live and how you are
 % currently using it (rehearsing with notes vs. exporting for the audience).
 % ------------------------------------------------------------------
 % Look for figures both in the current folder and common subfolders.
-\graphicspath{{./}{assets/}{pictures/}{figures/}{figures/regenerated/}}
+% Listed both relative to the repo root AND one level up (../...), so
+% \includegraphics resolves whether latexmk is invoked from the repo root
+% (the documented way — see .latexmkrc / the build command in the README-ish
+% comments) or from inside slides/ (e.g. an editor that compiles "this file"
+% from its own directory). NOTE: this only fixes *compilation*. For the
+% embedded \movie below to actually find its video at presentation time, the
+% final deck.pdf must end up at the repo root — see the comment by \movie.
+\graphicspath{%
+  {./}{../}%
+  {assets/}{../assets/}%
+  {pictures/}{../pictures/}%
+  {figures/}{../figures/}%
+  {figures/regenerated/}{../figures/regenerated/}%
+}
+
+% Let \input find files in figures/ directly (e.g. \input{mlp_diagram.tex}),
+% mirroring the dual-path \graphicspath above so it resolves whether latexmk
+% runs from the repo root or from inside slides/.
+\makeatletter
+\def\input@path{{figures/}{../figures/}}
+\makeatother
 
 % Speaker notes: show them on a second screen while presenting.
 % Swap to \setbeameroption{hide notes} for an audience-facing export.
@@ -31,21 +58,23 @@
 		\begin{column}{0.62\textwidth}
 			\vspace{3em}
 			{\fontsize{15}{27}\selectfont\bfseries Training Dynamics of\\Overparameterized Neural Networks}\par\vspace{2.5mm}
-			{\Large A Study of Spectral Bias on $S^1$}\par
 			\vspace{5mm}
 			{\large Shreyas Kalvankar}\par\vspace{1mm}
 			{\small MSc Computer Science, TU Delft}\par
 			\vspace{6mm}
-			{\scriptsize\textcolor{muted}{Advisor: Dr. D. M. J. Tax\\ Supervisor: Dr. A. Heinlein}}\par
+			{\scriptsize\textcolor{muted}{\textbf{Advisor:} Prof. Dr. D. M. J. Tax, Pattern Recognition \& Bioinformatics Group
+					\\ \textbf{Supervisor:} Prof. Dr. A. Heinlein, Numerical Analysis Group \\ \textbf{Committee Member:} Prof. Dr. A. Papapantoleon, Applied Probability Group
+				}}\par
 		\end{column}
 		\begin{column}{0.32\textwidth}
 			\vspace{3mm}
 			\begin{whitecard}[height=60mm]
 				\centering
 				\tudlogo[1.1cm]\par\vspace{7mm}
-				\pill{Spectral Bias}{bluebg}{blue}\par\vspace{2.5mm}
-				\pill{NTK on $S^1$}{greenbg}{green}\par\vspace{2.5mm}
-				\pill{Fourier Analysis}{yellowbg}{orange}\par\vspace{2.5mm}
+				\includegraphics[width=\linewidth]{cover_alt}
+				\pill{Spectral Bias}{bluebg}{blue}
+				\pill{NTK on $S^1$}{greenbg}{green}\par\vspace{0.2em}
+				\pill{Fourier Analysis}{yellowbg}{orange}\par\vspace{0.2em}
 				\pill{Finite-Scale Bounds}{purplebg}{purple}
 			\end{whitecard}
 		\end{column}
@@ -56,23 +85,131 @@
 \end{frame}
 
 % ------------------------------------------------------------------
+% Learning means fitting a function to data (supervised-learning framework).
+% Reveals in 4 overlay steps; the figure (figures/fit_intuition.tex) stages
+% dots on step 1 and the fitted curve on step 2 via its overlay hooks.
+%
+% These define the figure's staging hooks: dots from step 1, curve from
+% step 2. Defined OUTSIDE the frame (a raw #1 inside a frame body would be
+% swallowed by beamer's argument scan) and BEFORE the \input, so the
+% figure's own \providecommand identity-defaults are skipped. fit_intuition
+% is used only on this slide, so leaving these defined is harmless.
+\newcommand{\fitdotsoverlay}[1]{\visible<2->{#1}}
+\newcommand{\fitcurveoverlay}[1]{\visible<4->{#1}}
+\newcommand{\targetf}{{\color{orange}f^\star}}
+\newcommand{\modelf}{{\color{tudcyan}f}}
+\begin{frame}
+	\note<1->{
+		A neural network is just a rule that turns an input into an output, which is what we mean by a function. We are given example input output pairs and we want a function that agrees with them and, more importantly, gives sensible answers for inputs we have not seen, which is what generalize means. The way we get there is to adjust the function until its outputs on the examples are close to the true outputs, and the squared error written here just measures how far off it is. The next slide looks at what such a function is actually built from.
+	}
+	\vspace{0.5em}
+	\slidetitle{}{Supervised Learning: Fitting data to a function}
+
+	\vfill
+	\begin{columns}[c,onlytextwidth]
+		\begin{column}{0.52\textwidth}
+			\setlength{\parskip}{2.2mm}\small
+
+			\visible<2->{{\color{blue}\bfseries Data:}\ \ $n$ observations $(x_i, \targetf(x_i))$, examples of an unknown target function $\targetf$.\par}
+
+			\visible<3->{{\color{green}\bfseries Model:}\ \ a learned prediction function $\modelf(x)$.\par}
+
+			\visible<4->{{\color{blue}\bfseries Aim:}\ \ predict the target output $\targetf(x)$ for a new, unseen input $x$.\par}
+
+			\visible<5->{{\color{orange}\bfseries How:}\ \ choose $\modelf$ so its predictions are close to the target function on the observed data, i.e.\ minimise
+				$\displaystyle\frac{1}{n}\sum_{i=1}^{n}\big(\modelf(x_i)-\targetf(x_i)\big)^2$.\par}
+		\end{column}
+		\begin{column}{0.40\textwidth}
+			\centering
+			\input{fit_intuition.tex}
+		\end{column}
+	\end{columns}
+	\vfill
+\end{frame}
+
+% ------------------------------------------------------------------
 \begin{frame}
 	\note<1->{
 		We open by showing the target function as a sum of frequency components, built up coarse-to-fine: first the broad, low-frequency shape, then progressively finer high-frequency detail. This is the object the rest of the talk is about. The natural question it raises -- and the one the rest of the talk answers -- is: how do we learn it?
 	}
+	\vspace{0.5em}
+	\slidetitle{}{Example: a concrete target}
 
-	\vspace{2mm}
 	\centering
 	{\large\textcolor{muted}{A function is built from a coarse shape plus finer and finer detail.}}
 
 	\vspace{1.5mm}
-
-	\includegraphics[width=0.8\linewidth]{target_construction_poster.png}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.61\textwidth}
+			\centering
+			% The path below is relative to the FINAL deck.pdf's location, not
+			% to this .tex file or the compiling directory — Pympress resolves
+			% it relative to the PDF itself. It is only correct if deck.pdf
+			% ends up at the repo root (i.e. compiled with
+			% `latexmk ... slides/deck.tex` run FROM the repo root, per
+			% .latexmkrc — the documented way). If deck.pdf instead lands in
+			% slides/, the movie will not be found at presentation time even
+			% though the slide compiles and looks fine.
+			\movie[autostart, loop, poster, showcontrols=false]{%
+				\includegraphics[width=\linewidth]{target_construction_poster.png}%
+			}{figures/regenerated/target_construction.mp4}
+		\end{column}
+		\begin{column}{0.37\textwidth}
+			\begin{whitecard}
+				{\bfseries Frequency components}\par\vspace{1.5mm}
+				\begin{itemize}\tightlist\scriptsize
+					\item Each piece is one frequency, from slow waves to fast ones.
+					\item Low frequencies set the coarse shape; high frequencies add the fine detail.
+					\item The target is a short sum of these pieces.
+				\end{itemize}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
 
 	\vspace{1.5mm}
-
 	\begin{bluecard}[width=0.6\linewidth]
 		\centering{\Large\bfseries How do we learn this function?}
+	\end{bluecard}
+\end{frame}
+
+% ------------------------------------------------------------------
+% Slide A — the phenomenon (single-hidden-layer MLP, fixed split)
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{
+		We train the single-hidden-layer network --- the model the whole thesis analyses --- on the target from the opener. The three panels show the fit climbing toward the target, how each mode's residual decays during training, and the output rebuilt as a partial sum, coarse to fine. The takeaway: low-frequency structure is learned before high-frequency detail. The next slide checks whether this is one architecture being quirky, or something more general.
+	}
+	\vspace{0.5em}
+	\slidetitle{}{Watch one network learn it}
+	{\textcolor{muted}{Train a single-hidden-layer network on that target and watch the residual --- what gets learned first?}}
+
+	\vspace{1.5mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.59\textwidth}
+			\centering
+			\movie[autostart, loop, poster, showcontrols=false]{%
+				\includegraphics[width=\linewidth]{spectral_bias_mlp_single_layer_slow_intro_poster.png}%
+			}{figures/regenerated/spectral_bias_mlp_single_layer_slow_intro.mp4}
+		\end{column}
+		\begin{column}{0.39\textwidth}
+			\centering
+			\input{mlp_diagram.tex}
+
+			\vspace{2mm}
+			\begin{whitecard}
+				{\bfseries What to watch}\par\vspace{1mm}
+				\begin{itemize}\tightlist\scriptsize
+					\item The fit climbs toward the target.
+					\item Low-frequency modes die first.
+					\item Fine detail fills in last.
+				\end{itemize}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{-8mm}
+	\begin{bluecard}[width=0.55\linewidth]
+		\centering{\bfseries The coarse shape appears first; the fine detail comes last.}
 	\end{bluecard}
 \end{frame}
 
@@ -118,26 +255,30 @@
 		\begin{minipage}{\linewidth}
 			\raisebox{1.4mm}{\scriptsize\bfseries Low-frequency structure is learned before high-frequency detail.}
 			\hfill
-			\begin{minipage}{0.40\linewidth}
-				\placeholder[10mm]{[Figure] Legend: colour coding for frequency components}
-			\end{minipage}
+			\includegraphics[width=0.40\linewidth]{legend.png}
 		\end{minipage}
 		\begin{columns}[T,onlytextwidth]
 			\begin{column}{0.32\textwidth}
 				\centering
-				\placeholder[16mm]{[Video] Spectral bias over training\\one-hidden-layer MLP}\par\vspace{0.5mm}
+				\movie[autostart, loop, poster, showcontrols=false]{%
+					\includegraphics[width=0.86\linewidth]{spectral_bias_mlp_single_layer_poster.png}%
+				}{figures/regenerated/spectral_bias_mlp_single_layer.mp4}\par\vspace{0.5mm}
 				{\tiny One-hidden-layer MLP}
 			\end{column}
 
 			\begin{column}{0.32\textwidth}
 				\centering
-				\placeholder[16mm]{[Video] Spectral bias over training\\two-hidden-layer MLP}\par\vspace{0.5mm}
+				\movie[autostart, loop, poster, showcontrols=false]{%
+					\includegraphics[width=0.86\linewidth]{spectral_bias_mlp_deep_2_layer_poster.png}%
+				}{figures/regenerated/spectral_bias_mlp_deep_2_layer.mp4}\par\vspace{0.5mm}
 				{\tiny Two-hidden-layer MLP}
 			\end{column}
 
 			\begin{column}{0.32\textwidth}
 				\centering
-				\placeholder[16mm]{[Video] Spectral bias over training\\attention block}\par\vspace{0.5mm}
+				\movie[autostart, loop, poster, showcontrols=false]{%
+					\includegraphics[width=0.86\linewidth]{spectral_bias_attention_block_poster.png}%
+				}{figures/regenerated/spectral_bias_attention_block.mp4}\par\vspace{0.5mm}
 				{\tiny Attention Block}
 			\end{column}
 		\end{columns}
@@ -176,6 +317,277 @@
 % 	\pill{Finite width}{purplebg}{purple}
 %
 % \end{frame}
+
+% ------------------------------------------------------------------
+% Lead-in: teach the contour convention (bowl seen from above) before the
+% keystone slide uses contours. Standalone; plays once, freezes on the final 2D
+% frame (= the poster), so a skipped video still lands the message.
+\begin{frame}
+	\note<1->{
+		Picture the error as a landscape: high where the network is wrong, low
+		where it fits. Training rolls downhill, taking the steepest way down, which
+		is why it is called gradient descent. Notice the steps shrink as it nears
+		the bottom: the closer the error gets to zero, the smaller the correction,
+		because the slope itself is proportional to how much error is left. Then we
+		look at the same bowl from straight above. The rings are contours, lines of
+		equal height, so closely spaced rings mean steep and widely spaced rings
+		mean shallow. This bowl has a steep direction and a shallow one, and that is
+		the distinction the next slide builds on.
+	}
+	\vspace{0.5em}
+	\slidetitle{}{The error is a landscape}
+	{\textcolor{muted}{Seen from above, the contour rings are the bowl's height; training rolls toward the bottom.}}
+
+	\vspace{2mm}
+	\centering
+	\movie[autostart, loop, poster, showcontrols=false]{%
+		\includegraphics[width=0.62\linewidth]{bowl_to_contours_poster.png}%
+	}{figures/regenerated/bowl_to_contours.mp4}
+\end{frame}
+
+% ------------------------------------------------------------------
+% Keystone slide: "rate = eigenvalue", introduced geometrically before any
+% NTK machinery. Self-contained TikZ (no external assets). The Latex arrow
+% tips need the arrows.meta library, which the preamble does not load, so we
+% load it locally here to keep this frame self-contained.
+\usetikzlibrary{arrows.meta}
+\begin{frame}
+	\note<1->{
+		One sentence on what training does: it makes the error small. It does this by
+		walking downhill on the error, stepping in the direction the error drops
+		fastest, which is the negative gradient, hence gradient descent. Now the
+		question this slide answers: why do different directions get learned at
+		different speeds. Picture the error landscape as a stretched bowl. In the
+		bowl's own tilted coordinates the descent path mixes the two directions
+		together, so you cannot read off a clean rate for either one. The fix is to
+		use the bowl's own axes as coordinates. These special directions, the
+		eigenvectors, are the ones the dynamics never mixes. Along a single one of
+		them the error falls in proportion to how much is left, the differential
+		equation here, which is the same law as a cooling cup of coffee or
+		radioactive half-life, so it decays exponentially, alpha of t equals alpha of
+		zero times e to the minus lambda t. The rate lambda is the eigenvalue, large
+		is fast, small is slow. Everything after this works out what these directions
+		and rates are for a real network on the circle.
+	}
+	\vspace{0.4em}
+	\slidetitle{}{Each direction has its own rate}
+	{\textcolor{muted}{Training makes the error small by walking downhill, along the steepest drop.}}\par
+	{\raggedleft\tiny\textcolor{muted}{recall the error: $\tfrac1n\sum_i\big(f(x_i)-f^\star(x_i)\big)^2$}\par}
+
+	\vspace{1mm}
+	% ---------- ROW 1: the bowl, coupled then rotated to its own axes ----------
+	\begin{columns}[c,onlytextwidth]
+		\begin{column}{0.45\textwidth}
+			\centering
+			\visible<1->{
+				\begin{tikzpicture}[scale=0.50]
+					% Handed x, y axes (kept); the bowl is tilted RELATIVE to them.
+					% Matches the lead-in "error is a landscape" frozen frame.
+					\draw[line] (-2.5,0)--(2.5,0);
+					\draw[line] (0,-1.7)--(0,1.7);
+					\node[muted,font=\tiny] at (2.66,0.0) {$x$};
+					\node[muted,font=\tiny] at (0.0,1.9) {$y$};
+					% Tilted contour ellipses: principal axes at 30 deg, NOT along x, y.
+					\foreach \r in {1.0,0.861,0.707,0.544,0.36}{
+							\draw[tudcyan,opacity=0.55,rotate=30] (0,0) ellipse ({1.95*\r} and {1.36*\r});
+						}
+					% Curved gradient-descent path in x, y: each step crosses the
+					% tilted contours, so the route bends (the coordinates are
+					% coupled). Matches the lead-in path; starts high off the x axis,
+					% the steep part dies first, then it slides along the shallow axis.
+					\draw[orange,very thick]
+					(0.792,1.358)--(0.679,0.734)--(0.523,0.432)--(0.384,0.271)--(0.276,0.178)--(0.196,0.120)--(0.138,0.082);
+					\foreach \p in {(0.679,0.734),(0.523,0.432),(0.384,0.271),(0.276,0.178),(0.196,0.120),(0.138,0.082)}{
+							\fill[orange] \p circle (1.2pt);
+						}
+					\fill[orange] (0.792,1.358) circle (1.7pt);
+				\end{tikzpicture}\par\vspace{0.5mm}
+				{\scriptsize\textcolor{muted}{In your x, y axes the route bends: the two directions are coupled.}}
+			}
+		\end{column}
+
+		\begin{column}{0.08\textwidth}
+			\centering
+			\visible<2->{$\Longrightarrow$\\[0.5mm]{\tiny\textcolor{tudcyan}{the bowl's own axes}}}
+		\end{column}
+
+		\begin{column}{0.45\textwidth}
+			\centering
+			\visible<2->{
+				\begin{tikzpicture}[scale=0.50]
+					% The SAME bowl, rotated into its own (eigen) axes: the tilted
+					% ellipse of panel 1 is now axis-aligned, so the directions
+					% decouple. Same ellipse aspect (1.95 : 1.36) as panel 1.
+					\draw[line] (-2.4,0)--(2.4,0);
+					\draw[line] (0,-1.6)--(0,1.6);
+					\foreach \r in {1.0,0.861,0.707,0.544,0.36}{
+							\draw[tudcyan,opacity=0.55] (0,0) ellipse ({1.95*\r} and {1.36*\r});
+						}
+					% The SAME route in these (eigen) coordinates: the fast
+					% (vertical) component dies first, then it slides in along the
+					% slow (horizontal) axis. This is the decoupling made visible.
+					\draw[orange,very thick]
+					(1.365,0.780)--(0.956,0.296)--(0.669,0.113)--(0.468,0.043)--(0.328,0.016)--(0.229,0.006)--(0.161,0.002);
+					\foreach \p in {(0.956,0.296),(0.669,0.113),(0.468,0.043),(0.328,0.016),(0.229,0.006),(0.161,0.002)}{
+							\fill[orange] \p circle (1.1pt);
+						}
+					\fill[orange] (1.365,0.780) circle (1.6pt);
+					\draw[blue!60,very thick,-{Latex}] (0,0)--(1.95,0);
+					\node[blue!60!black,font=\tiny,anchor=north] at (1.4,-0.12) {slow: small $\lambda$};
+					\draw[orange!80,very thick,-{Latex}] (0,0)--(0,1.36);
+					\node[orange!80!black,font=\tiny,anchor=south west] at (0.06,1.36) {fast: large $\lambda$};
+				\end{tikzpicture}\par\vspace{0.5mm}
+				{\scriptsize\textcolor{muted}{Along each axis the error falls on its own.}}
+			}
+		\end{column}
+	\end{columns}
+
+	\vspace{1mm}
+	% ---------- ROW 2: one decoupled direction, its ODE and exponential ----------
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.49\textwidth}
+			\visible<3->{
+				\begin{bluecard}[height=22mm]
+					{\scriptsize Along one direction, the error falls in proportion to how much is left:}\par\vspace{1mm}
+					\[ \dot\alpha(t) = -\lambda\,\alpha(t) \]
+				\end{bluecard}
+			}
+		\end{column}
+		\begin{column}{0.49\textwidth}
+			\visible<4->{
+				\begin{greencard}[height=22mm]
+					\begin{columns}[c,onlytextwidth]
+						\begin{column}{0.58\textwidth}
+							{\scriptsize so it decays exponentially:}\par\vspace{0.5mm}
+							\[ \alpha(t)=\alpha(0)\,e^{-\lambda t} \]
+							{\tiny like cooling or half-life; $\lambda$ is the rate.}
+						\end{column}
+						\begin{column}{0.40\textwidth}
+							\centering
+							\begin{tikzpicture}[scale=0.42]
+								\draw[line] (0,0)--(3.2,0);
+								\draw[line] (0,0)--(0,2.4);
+								\draw[green!60!black,very thick] plot[smooth] coordinates
+									{(0,2.2)(0.5,1.47)(1.0,0.99)(1.5,0.66)(2.0,0.44)(2.6,0.27)(3.1,0.16)};
+							\end{tikzpicture}
+						\end{column}
+					\end{columns}
+				\end{greencard}
+			}
+		\end{column}
+	\end{columns}
+
+	\vspace{1mm}
+	\visible<5->{
+		\begin{bluecard}[width=0.9\linewidth]
+			\centering
+			{\scriptsize {\bfseries Eigenvector:} a direction the dynamics keeps separate, never mixing it with others.\quad
+				{\bfseries Eigenvalue} $\lambda$: its rate, large is fast, small is slow.}\par\vspace{0.8mm}
+			{\bfseries For a neural network, what are these directions and rates?}
+		\end{bluecard}
+	}
+\end{frame}
+
+% ------------------------------------------------------------------
+% Bridge 1: the scalar rate becomes an operator (the NTK). Answers the keystone's
+% closing question in principle; stays model-agnostic (no f_m yet, that is SETUP).
+\begin{frame}
+	\note<1->{
+		Picking up the question from the last slide. For a single direction the error
+		obeyed alpha dot equals minus lambda alpha, the rate was one number. For a
+		network the error is a whole function, the residual, and it still falls in
+		proportion to how much is left, but the proportion is no longer a number. It
+		is an operator acting on the whole function, and that operator is the neural
+		tangent kernel. The residual obeys r dot equals minus T r. This holds for any
+		differentiable model under gradient flow, which is why I am not writing the
+		network down yet. If T were a fixed operator, diagonalizing it would split
+		this back into one copy of the scalar law per eigenfunction, alpha k dot
+		equals minus lambda k alpha k. So the eigenfunctions are the directions and
+		the eigenvalues are the rates, and the question from the last slide becomes:
+		what is the spectrum of T.
+	}
+	\vspace{0.4em}
+	\slidetitle{}{The rate becomes an operator: the tangent kernel}
+	{\textcolor{muted}{The same law as before, with the single rate replaced by an operator.}}
+
+	\vspace{2mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.49\textwidth}
+			\begin{bluecard}[height=26mm]
+				{\textcolor{blue}{\bfseries One direction}}\par\vspace{1.5mm}
+				\[ \dot\alpha(t) = -\lambda\,\alpha(t) \]
+				{\scriptsize The error falls at rate $\lambda$, a single number.}
+			\end{bluecard}
+		\end{column}
+		\begin{column}{0.49\textwidth}
+			\begin{greencard}[height=26mm]
+				{\textcolor{green}{\bfseries A whole function}}\par\vspace{1.5mm}
+				\[ \partial_t r_t = -T_t\,r_t \]
+				{\scriptsize The rate becomes an operator $T_t$, the network's tangent kernel (NTK).}
+			\end{greencard}
+		\end{column}
+	\end{columns}
+
+	\vspace{1.5mm}
+	\begin{whitecard}
+		\centering
+		{\scriptsize If $T_t$ were fixed, diagonalizing it would split this into one copy of the scalar law per eigenfunction, $\dot\alpha_k=-\lambda_k\alpha_k$. The eigenfunctions are the directions; the eigenvalues are the rates.}
+	\end{whitecard}
+
+	\vspace{1mm}
+	\begin{bluecard}[width=0.6\linewidth]
+		\centering{\bfseries So the question becomes: what is the spectrum of $T$?}
+	\end{bluecard}
+\end{frame}
+
+% ------------------------------------------------------------------
+% Bridge 2: why the thesis idealizes before analyzing. Two obstructions + roadmap.
+\begin{frame}
+	\note<1->{
+		To read off a fixed set of directions and rates, T has to be one fixed
+		operator, and it is not yet. Two things are in the way. First, it is time
+		dependent: T changes as the network trains, so its directions and rates
+		drift. We freeze it to get a constant operator. Second, it depends on the
+		scale: at finite data it depends on the sampled points, and at finite width
+		it is random because it depends on the initialization. We take the continuum
+		and infinite width, where it becomes a single deterministic operator with
+		exact structure. The strategy for the rest of the talk is to analyze this
+		clean reference first, where the spectrum is exact, and then put each
+		idealization back one at a time: finite data, finite width, and finally a
+		kernel that evolves.
+	}
+	\vspace{0.4em}
+	\slidetitle{}{Why we start from an idealized model}
+	{\textcolor{muted}{To read off a fixed set of directions and rates, $T$ must be one fixed operator. Two things are in the way.}}
+
+	\vspace{2mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.49\textwidth}
+			\begin{orangecard}[height=30mm]
+				{\textcolor{orange}{\bfseries Time-dependent}}\par\vspace{1.5mm}
+				{\scriptsize $T_t$ changes as the network trains, so its directions and rates drift.}\par\vspace{1.5mm}
+				{\scriptsize Freeze it to get a constant operator.}
+			\end{orangecard}
+		\end{column}
+		\begin{column}{0.49\textwidth}
+			\begin{purplecard}[height=30mm]
+				{\textcolor{purple}{\bfseries Finite scale}}\par\vspace{1.5mm}
+				{\scriptsize At finite data $T$ depends on the sampled points; at finite width it is random.}\par\vspace{1.5mm}
+				{\scriptsize Take the continuum and infinite width for one deterministic operator.}
+			\end{purplecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{2mm}
+	\begin{whitecard}
+		\centering
+		{\scriptsize\bfseries Strategy:}\ {\scriptsize build the clean reference, then put each idealization back.}\par\vspace{2mm}
+		\pill{Reference model}{bluebg}{blue}\ $\longrightarrow$\
+		\pill{Finite data}{yellowbg}{orange}\ $\longrightarrow$\
+		\pill{Finite width}{purplebg}{purple}\ $\longrightarrow$\
+		\pill{Evolving}{greenbg}{green}
+	\end{whitecard}
+\end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}
@@ -344,7 +756,7 @@
 					\[
 						\lambda_k =
 						\begin{cases}
-							\displaystyle \frac14+\frac{2}{\pi^2},
+							\displaystyle \frac14+\frac{3}{\pi^2},
 							 & k=0,                 \\[0.4mm]
 							\displaystyle \frac14+\frac{1}{\pi^2},
 							 & k=1,                 \\[0.4mm]
@@ -671,7 +1083,7 @@
 		\begin{itemize}\tightlist\scriptsize
 			\item At small width, the evolving network is not well described by simply freezing the NTK at initialization.
 			\item As width grows, the difference between frozen and evolving dynamics becomes much smaller.
-			\item This creates the main tension: finite width can help by changing the kernel, but it also breaks the clean spectral reference model.
+			\item This is the main tension: at small width the kernel moves enough to matter, so the frozen approximation no longer describes training, even though the low-to-high ordering is unchanged.
 		\end{itemize}
 	\end{bluecard}
 \end{frame}
@@ -679,72 +1091,190 @@
 % ------------------------------------------------------------------
 \begin{frame}
 	\note<1->{
-		\begin{itemize}
-			\item The equation still has the same shape:
-			      \[
-				      \partial_t r_t=-T_t^{(m)}r_t.
-			      \]
-			\item But now $T_t^{(m)}$ is allowed to change while the network trains.
-			\item So the network is not only following a fixed learning rule; the learning rule itself is changing.
-			\item At small width, this change is quite visible.
-			\item The kernel can become stronger on the low-frequency parts of the target.
-			\item This helps explain why the evolving network can reduce the loss faster.
-			\item But there is also a downside: the clean Fourier picture becomes less exact.
-			\item So kernel evolution has two sides: it can help learning, but it makes the theory harder.
-			\item For finite samples and frozen finite width, I can prove concentration bounds.
-			\item For normal training, the harder object is:
-			      \[
-				      T_t^{(m)}-T_0^{(m)}.
-			      \]
-			\item In words: can we control how much the learning operator moves during training?
-			\item Thesis takeaway: start with an exact spectral model, prove when it survives finite scale, and identify where normal finite-width training goes beyond it.
-		\end{itemize}
+		This is the main finding. At small width the kernel does move, and the move
+		helps, but not in the way the frozen theory would predict. Two things happen
+		together. First, alignment: the eigenspaces do not line up with the Fourier
+		modes any better than at initialization, and at higher frequencies they line
+		up worse. Second, strength: the operator becomes much stronger on the lowest
+		frequency blocks, mostly k equal to zero and one. It is this added
+		low-frequency strength, not better alignment, that tracks the lower loss. So
+		gradient descent does not just learn low frequencies faster under a fixed
+		spectrum, it reshapes the kernel to favour them more, a second-order version
+		of the same bias. Two honesty points are on the slide: this is a correlation
+		with lower loss rather than an established cause, and the whole effect is
+		confined to small width, since at large width the frozen picture wins, the
+		m equals 1024 reversal, exactly what lazy training predicts.
+		Q\&A note: why the gain favours k=0 and k=1 is open. A likely cause is the
+		parameterisation, since the constant and frequency-one parts sit directly in
+		the pre-activation while higher harmonics only appear once ReLU acts. The
+		clean test, not yet run, is a target with no constant or frequency-one
+		component; if the gain persists there, the parameterisation account is wrong.
 	}
-	\slidetitle{BEYOND FROZEN NTK}{What changes when the operator moves?}
-	{\textcolor{muted}{The evolving-kernel regime keeps the same residual equation, but the operator is now time-dependent.}}
+	\slidetitle{EVOLVING KERNEL}{Why it helps: added strength, not better alignment}
+	{\textcolor{muted}{At small width the kernel reshapes itself, but not where the frozen theory would look.}}
 
-	\vspace{2.5mm}
-	\centering
-	\begin{bluecard}[width=0.40\linewidth]
-		\[
-			\partial_t r_t=-T_t^{(m)}r_t
-		\]
-		\centering{\scriptsize the learning operator changes during training}
-	\end{bluecard}
-
-	\vspace{3mm}
-	\pause
+	\vspace{2mm}
 	\begin{columns}[T,onlytextwidth]
-		\begin{column}{0.47\textwidth}
-			\begin{bluecard}[height=25mm]
-				{\textcolor{blue}{\bfseries Empirical picture}}\par\vspace{0.8mm}
-				\begin{itemize}\scriptsize
-					\item Small widths show substantial kernel movement.
-					\item Low-frequency spectral strength can increase.
-					\item This can accelerate training loss decay.
-					\item But eigenspaces can drift away from the Fourier reference.
-				\end{itemize}
-			\end{bluecard}
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}
+				\centering
+				\placeholder[30mm]{[Figure] Fourier alignment over training (subspace cosine similarity), per frequency}\par
+				{\scriptsize Alignment with the Fourier modes does not improve, and degrades at higher frequencies.}
+			\end{whitecard}
 		\end{column}
-		\begin{column}{0.47\textwidth}
-			\begin{orangecard}[height=25mm]
-				{\textcolor{orange}{\bfseries Theoretical gap}}\par\vspace{0.8mm}
-				{\scriptsize The finite-sample and frozen-width regimes are controlled by concentration.}\par\vspace{1.5mm}
-				{\scriptsize For the evolving kernel, one would need non-asymptotic control of $T_t^{(m)}-T_0^{(m)}$ over training time.}
-			\end{orangecard}
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}
+				\centering
+				\placeholder[30mm]{[Figure] Low-frequency spectral strength over training, per frequency block}\par
+				{\scriptsize Low-frequency spectral strength rises sharply, mostly in $k=0$ and $k=1$, and it tracks the lower loss.}
+			\end{whitecard}
 		\end{column}
 	\end{columns}
 
-	\vspace{2.5mm}
-	\begin{whitecard}
+	\vspace{1.5mm}
+	\begin{bluecard}
 		\centering
-		{\scriptsize\bfseries Thesis takeaway:}
-		{\scriptsize the frozen NTK gives a controlled spectral reference; finite-width training shows where that reference becomes insufficient.}
-	\end{whitecard}
+		{\bfseries Spectral bias is reinforced. What breaks is the frozen description, not the low-to-high ordering.}
+	\end{bluecard}
 
 	\vspace{1mm}
+	\begin{whitecard}
+		\begin{itemize}\tightlist\scriptsize
+			\item Shown as a correlation with lower loss, not an established cause.
+			\item A small-width effect: at large width the frozen picture wins (the $m=1024$ reversal), as lazy training predicts.
+		\end{itemize}
+	\end{whitecard}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{ Map each answer back to the three questions posed early in the talk. }
+	\slidetitle{CONCLUSION}{What we can now say}
+	{\textcolor{muted}{The three questions from the start, answered.}}
+
+	\vspace{2mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.32\textwidth}
+			\begin{bluecard}[height=40mm]
+				\questionnum{blue}{1}\ {\bfseries Rates}\par\vspace{1.5mm}
+				{\scriptsize Mode-wise rates are eigenvalues. Low frequencies have larger eigenvalues and are learned first; $\lambda_k\sim k^{-2}$.}
+			\end{bluecard}
+		\end{column}
+		\begin{column}{0.32\textwidth}
+			\begin{greencard}[height=40mm]
+				\questionnum{green}{2}\ {\bfseries Finite data}\par\vspace{1.5mm}
+				{\scriptsize Finite samples and frozen finite width preserve the picture, with explicit $O(n^{-1/2})$ and $O(m^{-1/2})$ control.}
+			\end{greencard}
+		\end{column}
+		\begin{column}{0.32\textwidth}
+			\begin{orangecard}[height=40mm]
+				\questionnum{orange}{3}\ {\bfseries Finite width}\par\vspace{1.5mm}
+				{\scriptsize Training evolves the kernel and reinforces the low-frequency bias. The frozen description holds where the kernel stays lazy, at large width.}
+			\end{orangecard}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{ What the circle buys us, what carries over, and the open problem. }
+	\slidetitle{SCOPE}{What is special about the circle, and what is not}
+
+	\vspace{3mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.32\textwidth}
+			\begin{greencard}[height=42mm]
+				{\textcolor{green}{\bfseries Special}}\par\vspace{1.5mm}
+				{\scriptsize Uniform measure on $S^1$ makes the NTK a convolution, so its eigenfunctions are exactly the Fourier modes.}
+			\end{greencard}
+		\end{column}
+		\begin{column}{0.32\textwidth}
+			\begin{bluecard}[height=42mm]
+				{\textcolor{blue}{\bfseries Carries over}}\par\vspace{1.5mm}
+				{\scriptsize Off this setting (non-uniform density, or Gaussian inputs giving Hermite polynomials) the basis changes, but eigenvalue size still sets the rates.}
+			\end{bluecard}
+		\end{column}
+		\begin{column}{0.32\textwidth}
+			\begin{orangecard}[height=42mm]
+				{\textcolor{orange}{\bfseries Open problem}}\par\vspace{1.5mm}
+				{\scriptsize A non-asymptotic theory for the evolving kernel: control of $T_t^{(m)}-T_0^{(m)}$ over training time.}
+			\end{orangecard}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{ One-line takeaway, then questions. }
+	\vspace{8mm}
 	\centering
-	{\scriptsize Future direction: mathematical structure in function space as an explanation for training and generalization.}
+	\begin{bluecard}[width=0.8\linewidth]
+		\centering
+		{\large\bfseries Spectral bias is an eigenvalue statement: rate equals eigenvalue.}\par\vspace{2mm}
+		{\scriptsize It survives finite data and finite width, and at small width training reshapes the kernel to favour low frequencies even more.}
+	\end{bluecard}
+
+	\vspace{6mm}
+	{\Large\bfseries Questions?}
+
+	\vspace{4mm}
+	{\scriptsize\textcolor{muted}{[acknowledgements placeholder]}}
+\end{frame}
+
+% ==================================================================
+\appendix
+\begin{frame}[noframenumbering]
+	\centering\vspace{2cm}
+	{\Large\bfseries Backup}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{NTK: from parameter updates to an operator on functions}
+	\vspace{2mm}
+	\placeholder[40mm]{[Backup] Derivation of the NTK: how gradient descent on weights becomes $\partial_t r_t = -T_t r_t$}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{Concentration bounds: the constants, and where the magnitude bound is loose}
+	\vspace{2mm}
+	\placeholder[40mm]{[Backup] Explicit constants in the $O(n^{-1/2})$ and $O(m^{-1/2})$ bounds; discussion of where the magnitude bound is not tight}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{Computing the eigenvalues $\lambda_k$}
+	\vspace{2mm}
+	\placeholder[40mm]{[Backup] Integral computation of $\lambda_k$ for the ReLU NTK on $S^1$; verification against the explicit cases $k=0,1$}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{The $k=2$ anomaly}
+	\vspace{2mm}
+	\placeholder[40mm]{[Backup] Why $\lambda_2$ does not follow the generic even-$k$ formula; how the $k^2-1$ denominator is modified at $k=2$}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{Strict ordering: where it holds and where it does not}
+	\vspace{2mm}
+	\placeholder[40mm]{[Backup] Conditions under which $\lambda_k > \lambda_{k+1}$; counterexamples or caveats near the transition between even and odd cases}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{Why $k=0$ and $k=1$ gain strength: a hypothesis and its test}
+	\vspace{2mm}
+	\placeholder[40mm]{[Backup] Parameterisation hypothesis; proposed clean test (target with no $k=0,1$ component)}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{Mean-field and preconditioning views}
+	\vspace{2mm}
+	\placeholder[40mm]{[Backup] Mean-field interpretation of infinite-width limit; preconditioning perspective on spectral bias}
 \end{frame}
 
 \end{document}

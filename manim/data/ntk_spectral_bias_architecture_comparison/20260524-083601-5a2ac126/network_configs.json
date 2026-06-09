@@ -1,0 +1,32 @@
+{
+  "models": [
+    {
+      "name": "mlp_single_layer",
+      "type": "mlp",
+      "width": 2048,
+      "depth_hidden": 1,
+      "b_std": 1.0,
+      "parameterization": "ntk"
+    },
+    {
+      "name": "mlp_deep_3_layer",
+      "type": "mlp",
+      "width": 1024,
+      "depth_hidden": 3,
+      "b_std": 1.0,
+      "parameterization": "ntk"
+    },
+    {
+      "name": "attention_block",
+      "type": "attention",
+      "d_model": 256,
+      "n_heads": 4,
+      "d_key": 64,
+      "n_chan_val": 256,
+      "b_std": 1.0,
+      "parameterization": "ntk",
+      "linear_scaling": true,
+      "attention_mechanism": "SOFTMAX"
+    }
+  ]
+}

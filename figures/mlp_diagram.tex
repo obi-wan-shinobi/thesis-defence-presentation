@@ -1,0 +1,50 @@
+% Self-contained TikZ snippet — single-hidden-layer ReLU MLP on S^1.
+% No preamble/document: meant to be pulled into a slide with \input.
+% Uses the deck's palette (text, muted, line, border, tudcyan, bg) and
+% \familydefault (sans), so it inherits the house style automatically.
+\begin{tikzpicture}[
+		x=1mm, y=1mm,
+		every node/.style={font=\tiny},
+		neuron/.style={circle, draw=text, fill=bg, minimum size=2mm, line width=0.5pt},
+		outnode/.style={circle, draw=tudcyan, fill=bg, minimum size=2mm, line width=0.8pt},
+		conn/.style={draw=text, line width=0.3pt},
+		lbl/.style={font=\scriptsize, text=muted}
+	]
+	% --- node positions (mm); kept compact: natural size ~51mm x ~25mm,
+	% i.e. roughly 38% of slide width and ~30mm tall (incl. labels) as required ---
+	\coordinate (i1) at (0, 5);
+	\coordinate (i2) at (0, -5);
+	\coordinate (h1) at (14, 10);
+	\coordinate (h2) at (14, 4);
+	\coordinate (h3) at (14, -4);
+	\coordinate (h4) at (14, -10);
+	\coordinate (o)  at (28, 0);
+
+	% --- edges first, so the nodes sit cleanly on top of them ---
+	\foreach \a in {i1, i2}
+	\foreach \b in {h1, h2, h3, h4}
+	\draw[conn] (\a) -- (\b);
+	\foreach \b in {h1, h2, h3, h4}
+	\draw[conn] (\b) -- (o);
+
+	% --- nodes (drawn over the edges; fill=bg masks the stubs cleanly) ---
+	\node[neuron] at (i1) {};
+	\node[neuron] at (i2) {};
+	\node[neuron] at (h1) {};
+	\node[neuron] at (h2) {};
+	\node[text=text, font=\small] at (14, 1) {$\vdots$};
+	\node[neuron] at (h3) {};
+	\node[neuron] at (h4) {};
+	\node[outnode] at (o) {};
+
+	% --- labels (absolute coords, so no \usetikzlibrary{calc} is needed and
+	% the snippet stays self-contained against the deck's default tikz setup) ---
+	\node[lbl, anchor=east] at (-2, 0) {$x(\varphi)$};
+	\node[lbl, anchor=west, text=tudcyan] at (30.5, 0) {$f(x)$};
+	\node[lbl, align=center] at (14, -14) {$m$ neurons};
+\end{tikzpicture}
+
+\par\vspace{1mm}
+{\scriptsize\itshape\textcolor{muted}{%
+		$\displaystyle f_m(x;\theta)=\frac{1}{\sqrt m}\sum_{i=1}^m a_i\,\sigma\!\left(w_i^\top x + b_i\right),\ \ \sigma=\mathrm{ReLU}$%
+	}}

@@ -6,7 +6,8 @@
 % ------------------------------------------------------------------
 \RequirePackage[T1]{fontenc}
 \RequirePackage[utf8]{inputenc}
-\RequirePackage{lmodern}
+% \RequirePackage{lmodern}
+\RequirePackage[sfdefault]{AlegreyaSans} % or AlegreyaSans, or nunito
 \RequirePackage{amsmath,amssymb,bm}
 \RequirePackage{booktabs}
 \RequirePackage{array}
@@ -59,68 +60,68 @@
 % This avoids the "File TUDelft_logo.png not found" compile error.
 % If the logo file is missing, the slide still compiles and displays text instead.
 \newcommand{\tudlogo}[1][0.31cm]{%
-  \IfFileExists{assets/TUDelft_logo.png}{\includegraphics[height=#1]{assets/TUDelft_logo.png}}{%
-  \IfFileExists{TUDelft_logo.png}{\includegraphics[height=#1]{TUDelft_logo.png}}{%
-  \IfFileExists{pictures/TUDelft_logo.png}{\includegraphics[height=#1]{pictures/TUDelft_logo.png}}{%
-  \IfFileExists{figures/TUDelft_logo.png}{\includegraphics[height=#1]{figures/TUDelft_logo.png}}{%
-  \textcolor{tudcyan}{\bfseries TU Delft}}}}}%
+	\IfFileExists{assets/TUDelft_logo.png}{\includegraphics[height=#1]{assets/TUDelft_logo.png}}{%
+		\IfFileExists{TUDelft_logo.png}{\includegraphics[height=#1]{TUDelft_logo.png}}{%
+			\IfFileExists{pictures/TUDelft_logo.png}{\includegraphics[height=#1]{pictures/TUDelft_logo.png}}{%
+				\IfFileExists{figures/TUDelft_logo.png}{\includegraphics[height=#1]{figures/TUDelft_logo.png}}{%
+					\textcolor{tudcyan}{\bfseries TU Delft}}}}}%
 }
 
 \newcommand{\safeimage}[2][]{%
-  \IfFileExists{#2}{\includegraphics[#1]{#2}}{%
-    \fbox{\parbox[c][32mm][c]{0.88\linewidth}{\centering\scriptsize Missing image:\\#2}}%
-  }%
+	\IfFileExists{#2}{\includegraphics[#1]{#2}}{%
+		\fbox{\parbox[c][32mm][c]{0.88\linewidth}{\centering\scriptsize Missing image:\\#2}}%
+	}%
 }
 
 % Stand-in for a figure/animation that has not been produced yet.
 % #1 (optional, default 45mm) = box height; #2 = label describing what will go there.
 \newcommand{\placeholder}[2][45mm]{%
-  \begin{tikzpicture}
-    \node[draw=border, dashed, fill=line!30, rounded corners=2mm,
-          minimum width=\linewidth, minimum height=#1,
-          align=center, text width=0.9\linewidth,
-          font=\scriptsize\itshape, text=muted, inner sep=2mm] {#2};
-  \end{tikzpicture}%
+	\begin{tikzpicture}
+		\node[draw=border, dashed, fill=line!30, rounded corners=2mm,
+			minimum width=\linewidth, minimum height=#1,
+			align=center, text width=0.9\linewidth,
+			font=\scriptsize\itshape, text=muted, inner sep=2mm] {#2};
+	\end{tikzpicture}%
 }
 
 % ------------------------------------------------------------------
 % Background, border, footer
 % ------------------------------------------------------------------
 \setbeamertemplate{background}{%
-  \begin{tikzpicture}[remember picture,overlay]
-    \fill[bg] (current page.south west) rectangle (current page.north east);
-    \draw[border,line width=0.55pt]
-      ([xshift=4mm,yshift=4mm]current page.south west) rectangle
-      ([xshift=-4mm,yshift=-4mm]current page.north east);
-    \fill[tudcyan]
-      ([xshift=4mm,yshift=-4mm]current page.north west) rectangle
-      ([xshift=5.6mm,yshift=4mm]current page.south west);
-  \end{tikzpicture}%
+	\begin{tikzpicture}[remember picture,overlay]
+		\fill[bg] (current page.south west) rectangle (current page.north east);
+		\draw[border,line width=0.55pt]
+		([xshift=4mm,yshift=4mm]current page.south west) rectangle
+		([xshift=-4mm,yshift=-4mm]current page.north east);
+		\fill[tudcyan]
+		([xshift=4mm,yshift=-4mm]current page.north west) rectangle
+		([xshift=5.6mm,yshift=4mm]current page.south west);
+	\end{tikzpicture}%
 }
 
 \setbeamertemplate{footline}{%
-  \leavevmode%
-  \hbox{%
-    \begin{beamercolorbox}[wd=\paperwidth,ht=4.8ex,dp=1.2ex,leftskip=10mm,rightskip=10mm]{author in head/foot}%
-      \tudlogo[0.31cm]\hfill
-      {\tiny\textcolor{muted}{Training Dynamics of Overparameterized Neural Networks\quad |\quad \insertframenumber}}
-    \end{beamercolorbox}%
-  }%
+	\leavevmode%
+	\hbox{%
+		\begin{beamercolorbox}[wd=\paperwidth,ht=4.8ex,dp=1.2ex,leftskip=10mm,rightskip=10mm]{author in head/foot}%
+			\tudlogo[0.31cm]\hfill
+			{\tiny\textcolor{muted}{Training Dynamics of Overparameterized Neural Networks\quad |\quad \insertframenumber}}
+		\end{beamercolorbox}%
+	}%
 }
 
 % ------------------------------------------------------------------
 % Card styles and commands
 % ------------------------------------------------------------------
 \tcbset{
-  sharp corners=downhill,
-  arc=2mm,
-  boxrule=0.35pt,
-  left=2.2mm,
-  right=2.2mm,
-  top=1.4mm,
-  bottom=1.4mm,
-  before skip=0pt,
-  after skip=0pt
+	sharp corners=downhill,
+	arc=2mm,
+	boxrule=0.35pt,
+	left=2.2mm,
+	right=2.2mm,
+	top=1.4mm,
+	bottom=1.4mm,
+	before skip=0pt,
+	after skip=0pt
 }
 \newtcolorbox{whitecard}[1][]{colback=graycard,colframe=line,#1}
 \newtcolorbox{bluecard}[1][]{colback=bluebg,colframe=blue!25,#1}
@@ -135,19 +136,19 @@
 % visible safe area in some PDF viewers/projectors. This version adds a small
 % top inset and keeps the label in a compact, bounded line.
 \newcommand{\tagline}[1]{%
-  \if\relax\detokenize{#1}\relax
-  \else
-    {\textcolor{tudcyan}{\fontsize{5.4}{6.2}\selectfont\bfseries #1}}\par\vspace{1mm}%
-  \fi
+	\if\relax\detokenize{#1}\relax
+	\else
+		{\textcolor{tudcyan}{\fontsize{5.4}{6.2}\selectfont\bfseries #1}}\par\vspace{1mm}%
+	\fi
 }
 
 \newcommand{\slidetitle}[2]{%
-  \vspace*{4.6mm}%
-  \noindent\begin{minipage}{\linewidth}
-    \tagline{#1}%
-    {\fontsize{12}{15.5}\selectfont\bfseries #2}\par\vspace{0.6mm}
-    {\color{line}\rule{\linewidth}{0.35pt}}\par\vspace{1.2mm}
-  \end{minipage}%
+	\vspace*{4.6mm}%
+	\noindent\begin{minipage}{\linewidth}
+		\tagline{#1}%
+		{\fontsize{12}{15.5}\selectfont\bfseries #2}\par\vspace{0.6mm}
+		{\color{line}\rule{\linewidth}{0.35pt}}\par\vspace{1.2mm}
+	\end{minipage}%
 }
 \newcommand{\pill}[3]{\tikz[baseline=-0.5ex]{\node[rounded corners=2mm, fill=#2, text=#3, inner xsep=7pt, inner ysep=3pt, font=\scriptsize\bfseries] {#1};}}
 \newcommand{\questionnum}[2]{\tikz[baseline=-0.5ex]{\node[circle, fill=#1, text=white, inner sep=2.1pt, font=\scriptsize\bfseries] {#2};}}
