@@ -5,6 +5,8 @@
 % (kept in its own package so it can be reused/edited independently)
 % ------------------------------------------------------------------
 \usepackage{style}
+\usepackage{tikz}
+\usetikzlibrary{calc}
 \usetikzlibrary{arrows.meta}
 
 \newcommand{\R}{\mathbb{R}}
@@ -45,8 +47,8 @@
 
 % Speaker notes: show them on a second screen while presenting.
 % Swap to \setbeameroption{hide notes} for an audience-facing export.
-% \setbeameroption{show notes on second screen=right}
-\setbeameroption{hide notes}
+\setbeameroption{show notes on second screen=right}
+% \setbeameroption{hide notes}
 
 % ------------------------------------------------------------------
 \begin{document}
@@ -55,6 +57,13 @@
 % Title slide
 % ------------------------------------------------------------------
 \begin{frame}[plain,noframenumbering]
+	\note<1->{
+		Good morning everyone. My thesis is on training dynamics of
+		overparameterized neural networks. I’ll give you an overview of what
+		I’ve done over the past eight months. We’ll start by understanding the
+		problem, then I’ll illustrate the key idea, share the results, and show
+		experiments that support the claims. Let’s begin!
+	}
 	\vspace{3mm}
 	\begin{columns}[T,onlytextwidth]
 		\begin{column}{0.62\textwidth}
@@ -83,7 +92,7 @@
 	\end{columns}
 	\vfill
 	{\color{line}\rule{\linewidth}{0.35pt}}\vspace{1mm}
-	{\tiny\textcolor{muted}{May 2026}\hfill\textcolor{muted}{TU Delft}}
+	{\tiny\textcolor{muted}{June 2026}\hfill\textcolor{muted}{TU Delft}}
 \end{frame}
 
 % ------------------------------------------------------------------
@@ -102,22 +111,15 @@
 \newcommand{\modelf}{{\color{tudcyan}f}}
 \begin{frame}
 	\note<1->{
-		A neural network is just a rule that turns an input into an output,
-		which is what we mean by a function. We are given example input output
-		pairs and we want a function that agrees with them and, more
-		importantly, gives sensible answers for inputs we have not seen, which
-		is what generalize means. The way we get there is to adjust the
-		function until its outputs on the examples are close to the true
-		outputs, and the squared error written here just measures how far off
-		it is. But we cannot try arbitrary functions one by one, so instead we
-		fix a family of functions described by a set of adjustable numbers, the
-		parameters, and learning means tuning those numbers. Keep the word
-		unknowns in mind: the next motivation slide counts parameters against
-		data points exactly like unknowns against equations. The next slide
-		looks at what such a function is actually built from.
+		Supervised learning is about learning from examples. We have inputs
+		and targets from an unknown function, and our goal is to learn a
+		prediction function that is close to that unknown function. Since
+		we cannot search over all possible functions, we choose a
+		parameterized family \(f_\theta\), and training means adjusting the
+		parameters \(\theta\).
 	}
 	\vspace{0.5em}
-	\slidetitle{INTRODUCTION}{Supervised Learning: Fitting data to a function}
+	\slidetitle{INTRODUCTION}{Supervised Learning: Fitting a function to data}
 
 	\vfill
 	\begin{columns}[c,onlytextwidth]
@@ -154,18 +156,50 @@
 % teaser is confirmed by the demos on the next three slides.
 \begin{frame}
 	\note<1->{
-		\begin{itemize}
-			\item 3 eq / 3 unknowns: one solution; 3 eq / 4 unknowns: a line of solutions.
-			\item Network: each data point = one constraint on $\theta$.
-			\item ``Solution'' = near-zero training error.
-			\item Example: CIFAR-10 has 50k images; WRN-28-10 has many more parameters.
-			\item Large networks can generalize, but also fit random labels.
-			\item Key question: which fit does gradient descent pick?
-			\item Teaser: coarse before fine.
-		\end{itemize}
+		We know from basic linear algebra: if we have as many
+		independent equations as unknowns, we usually get one solution. But
+		if we have more unknowns than equations, many solutions can fit the
+		same constraints.
+
+		In neural networks, each training example acts like a constraint on
+		the parameters. If we have many more parameters than examples, we
+		can fit the training data in many different ways. This is
+		overparameterization.
+
+		The surprising part is that these networks often still work well on
+		unseen data. For example, on CIFAR-10, a very large Wide ResNet has
+		millions of parameters but still achieves low test error. So
+		fitting the training set alone cannot be the whole explanation.
+
+		This is why the learning process itself matters. Empirically,
+		researchers have observed that networks often learn simple
+		structure before complex detail.
 	}
 	\vspace{0.5em}
 	\slidetitle{MOTIVATION \& RELEVANCE}{Overparameterization: many ways to fit the same data}
+	\begin{tikzpicture}[remember picture, overlay]
+		\node[anchor=north east, xshift=-6mm, yshift=-7mm]
+		at (current page.north east) {%
+			\begin{tikzpicture}[scale=0.35]
+				% axes
+				\draw[->, very thin, color=muted] (-0.4,0) -- (6.9,0);
+				\draw[->, very thin, color=muted] (0,-0.4) -- (0,4.5);
+				% smooth fit (blue)
+				\draw[color=blue, thick, domain=-0.15:6.15, smooth, samples=60]
+				plot (\x, {3.5 - 0.35*(\x-3)^2});
+				% wiggly fit (orange): smooth fit + sine term vanishing at integers
+				% (TikZ sin is in degrees, so sin(180*\x) = 0 at every sample point)
+				\draw[color=orange, thick, domain=-0.15:6.15, smooth, samples=200]
+				plot (\x, {3.5 - 0.35*(\x-3)^2 + 0.85*sin(180*\x)});
+				% shared data points, drawn last so they sit on top of both curves
+				\foreach \x in {0,...,6}
+				\fill[color=text] (\x, {3.5 - 0.35*(\x-3)^2}) circle (2.4pt);
+				% caption
+				\node[anchor=north, font=\tiny, text=muted] at (3.2,-0.5)
+				{two fits, $L(\theta_1^\ast)=L(\theta_2^\ast)=0$};
+			\end{tikzpicture}%
+		};
+	\end{tikzpicture}
 	{\textcolor{muted}{When many solutions fit the data, the learning process itself becomes important.}}
 
 	\vspace{2mm}
@@ -242,14 +276,15 @@
 % overparameterized models less trial-and-error driven.
 \begin{frame}
 	\note<1->{
-		\begin{itemize}
-			\item Keep this high level.
-			\item Not claiming this solves energy or deployment.
-			\item Point: training behaviour matters because training is costly and opaque.
-			\item Compute and data-centre energy are growing quickly.
-			\item Do not explain thesis yet; next slides show the mechanism.
-			\item Transition: what does training learn first?
-		\end{itemize}
+		There is a clear trend: models keep growing larger.
+
+		But once many solutions can fit the data, we need to ask what training is actually doing.
+
+		This matters because modern AI systems are increasingly expensive and
+		energy-intensive to train.
+
+		So before simply asking for a bigger model, we can ask a more basic question: what does gradient descent
+		learn first?
 	}
 	\vspace{0.5em}
 	\slidetitle{MOTIVATION \& RELEVANCE}{Why study training behaviour?}
@@ -262,10 +297,12 @@
 
 			\item Once many fits are possible, improving a model is not only about making it larger; it is also about understanding what training is actually doing.
 
+			      \pause
 			\item This matters more as modern AI systems become expensive and energy-intensive to train:
 			      the compute used to train large-scale AI models is reported to double roughly every five months
 			      (\textcolor{muted}{\href{https://hai.stanford.edu/ai-index/2025-ai-index-report/research-and-development}{Stanford AI Index, 2025}}); the Llama~3.1 family alone used 39.3M H100 GPU-hours for training (\textcolor{muted}{\href{https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md}{Meta AI, 2024}}).
 
+			      \pause
 			\item So before asking for a bigger model, we can ask: \textbf{what does gradient descent learn first?}
 		\end{itemize}
 	}
@@ -275,16 +312,17 @@
 \begin{frame}
 	\note<1->{
 		\begin{itemize}
-			\item Target = short sum of frequencies, coarse $\to$ fine.
-			\item The object the rest of the talk tracks.
-			\item Sets up the demo: what appears first?
+			\item Let us make this question concrete. Suppose the target function is built from several waves of different frequencies.
+			\item Each piece is called a mode, or Fourier mode.
+			\item Low frequencies give the broad shape of the function, while high frequencies add the fine detail.
+			\item The question is: which part gets learned first?
 		\end{itemize}
 	}
 	\vspace{0.5em}
 	\slidetitle{ILLUSTRATION}{A concrete target}
 
-	\centering
 	{\textcolor{muted}{To watch that choice happen, take a target built from a coarse shape plus finer and finer detail.}}
+	\centering
 
 	\vspace{1.5mm}
 	\begin{columns}[T,onlytextwidth]
@@ -326,12 +364,10 @@
 % ------------------------------------------------------------------
 \begin{frame}
 	\note<1->{
-		We train the single-hidden-layer network, the model the whole thesis
-		analyses, on the target from the opener. The three panels show the fit
-		climbing toward the target, how each mode's residual decays during
-		training, and the output rebuilt as a partial sum, coarse to fine. The
-		takeaway: low-frequency structure is learned before high-frequency
-		detail.
+		\begin{itemize}
+			\item We train a single-hidden-layer neural network on this target and watch both the prediction and the error in each Fourier mode.
+			\item The low-frequency errors disappear first. So the coarse shape appears first, and the fine detail comes later.
+		\end{itemize}
 	}
 	\vspace{0.5em}
 	\slidetitle{ILLUSTRATION}{Watch one network learn it}
@@ -339,48 +375,54 @@
 
 	\vspace{1.5mm}
 	\begin{columns}[T,onlytextwidth]
+		% Slide 1: Only the MP4 video and the network diagram are visible
 		\begin{column}{0.59\textwidth}
 			\centering
 			\movie[autostart, loop, poster, showcontrols=false]{%
 				\includegraphics[width=\linewidth]{spectral_bias_mlp_single_layer_slow_intro_poster.png}%
 			}{figures/regenerated/spectral_bias_mlp_single_layer_slow_intro.mp4}
 		\end{column}
+
 		\begin{column}{0.39\textwidth}
 			\centering
 			\input{mlp_diagram.tex}
 
 			\vspace{2mm}
-			\begin{whitecard}
-				{\bfseries Notice}\par\vspace{1mm}
-				\begin{itemize}\tightlist\scriptsize
-					\item The fit climbs toward the target.
-					\item Low-frequency modes die first.
-					\item Fine detail fills in last.
-				\end{itemize}
-			\end{whitecard}
+			% Slide 2: The white card reveals its bullet points incrementally
+			\uncover<2->{
+				\begin{whitecard}
+					{\bfseries Notice}\par\vspace{1mm}
+					\begin{itemize}\tightlist\scriptsize
+						\item<2-> Low-frequency modes die first.
+						\item<3-> Fine detail fills in last.
+					\end{itemize}
+				\end{whitecard}
+			}
 		\end{column}
 	\end{columns}
 
 	\vspace{-8mm}
-	\begin{bluecard}[width=0.55\linewidth]
-		\centering{\bfseries The coarse shape appears first; the fine detail comes last.}
-	\end{bluecard}
+	% Slide 5: The final takeaway blue card displays at the very end
+	\uncover<4->{
+		\begin{bluecard}[width=0.55\linewidth]
+			\centering{\bfseries The coarse shape appears first; the fine detail comes last.}
+		\end{bluecard}
+	}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}
 	\note<1->{
-		Spectral bias is the tendency of neural networks trained with gradient descent to learn low-frequency structure before high-frequency detail.
-
-		In other words, the network first captures the smooth, global shape of the target, and only later fits the more oscillatory parts.
-
-		That is what these examples are meant to show. Even though the architectures are different, the learning process has the same qualitative pattern: low-frequency modes appear early, high-frequency modes are delayed.
-
-		My thesis asks whether we can explain this from the training dynamics.
-
-		The main idea is to reformulate spectral bias as an operator eigenvalue problem. If an operator governs the residual dynamics, then its eigenvalues determine which frequencies are learned quickly and which ones are learned slowly.
-
-		So the three guiding questions are: what controls mode-wise learning rates, does the explanation survive finite data, and does it survive finite width?
+		\begin{itemize}
+			\item On a very high level, we want to study this mechanism more rigorously and answer three questions
+			\item What sets the learning speed of each frequency? Which has
+			      been answered theoretically in the literature by making certain
+			      assumptions which often involve analysing limiting cases with
+			      infinite data and infinite parameters, which often prevents us from
+			      using it practically.
+			\item We want to know how this theoretical explanation changes when we don’t have infinite data.
+			\item And we want to know how it changes when we don’t have infinite parameters, or neurons.
+		\end{itemize}
 	}
 	\vspace{0.5em}
 	\slidetitle{THESIS}{Why does gradient descent learn simple structure first?}
@@ -388,6 +430,7 @@
 
 	\vspace{1.8mm}
 	\begin{columns}[T,onlytextwidth]
+		% Slide 1: The Thesis statement is visible immediately
 		\begin{column}{0.48\textwidth}
 			\begin{bluecard}[height=22mm]
 				\textcolor{purple}{\scriptsize\bfseries Thesis in one sentence}\par\vspace{1mm}
@@ -397,17 +440,22 @@
 					points, finitely many neurons.}
 			\end{bluecard}
 		\end{column}
+
+		% Slides 2-4: The "Three questions" card reveals its entries step-by-step
 		\begin{column}{0.50\textwidth}
-			\begin{whitecard}[height=23mm]
-				{\scriptsize\bfseries Three questions}\par\vspace{1.3mm}
-				\questionnum{blue}{1}\quad {\tiny What sets the learning speed of each frequency?}\par\vspace{1.2mm}
-				\questionnum{green}{2}\quad {\tiny Does the answer survive when the network sees only \(n\) sampled points? \emph{(RQ1)}}\par\vspace{1.2mm}
-				\questionnum{orange}{3}\quad {\tiny Does it survive with finitely many neurons, at the start of training and during it? \emph{(RQ2)}}
-			\end{whitecard}
+			\uncover<2->{
+				\begin{whitecard}[height=23mm]
+					{\scriptsize\bfseries Three questions}\par\vspace{1.3mm}
+					\uncover<2->{\questionnum{blue}{1}\quad {\tiny What sets the learning speed of each frequency?}\par\vspace{1.2mm}}
+					\uncover<3->{\questionnum{green}{2}\quad {\tiny Does the answer survive when the network sees only \(n\) sampled points? \emph{(RQ1)}}\par\vspace{1.2mm}}
+					\uncover<4->{\questionnum{orange}{3}\quad {\tiny Does it survive with finitely many neurons, at the start of training and during it? \emph{(RQ2)}}}
+				\end{whitecard}
+			}
 		\end{column}
 	\end{columns}
 
 	\vspace{2mm}
+	% Slide 1: The entire bottom card containing the parallel model demos is fully visible from the start
 	\begin{whitecard}
 		\begin{minipage}{\linewidth}
 			\raisebox{1.4mm}{\scriptsize\bfseries Frequency ordering in different networks.}
@@ -444,15 +492,11 @@
 
 \begin{frame}
 	\note<1->{
-		Picture the error as a landscape: high where the network is wrong, low
-		where it fits. Training rolls downhill, taking the steepest way down, which
-		is why it is called gradient descent. Notice the steps shrink as it nears
-		the bottom: the closer the error gets to zero, the smaller the correction,
-		because the slope itself is proportional to how much error is left. Then we
-		look at the same bowl from straight above. The rings are contours, lines of
-		equal height, so closely spaced rings mean steep and widely spaced rings
-		mean shallow. This bowl has a steep direction and a shallow one, and that is
-		the distinction the next slide builds on.
+		\begin{itemize}
+			\item We have been using the term gradient descent a lot in the context of training a neural network, let’s quickly understand what we mean
+			\item As mentioned a few slides ago, the goal of neural network training is to update the network to minimize the average error on the training data
+			\item Geometrically, this can be viewed as moving through an error landscape.
+		\end{itemize}
 	}
 	\vspace{0.5em}
 	\slidetitle{BACKGROUND}{The error is a landscape}
@@ -472,21 +516,13 @@
 % NTK machinery. Self-contained TikZ (no external assets).
 \begin{frame}
 	\note<1->{
-		One sentence on what training does: it makes the error small. It does this by
-		walking downhill on the error, stepping in the direction the error drops
-		fastest, which is the negative gradient, hence gradient descent. Now the
-		question this slide answers: why do different directions get learned at
-		different speeds. Picture the error landscape as a stretched bowl. In the
-		bowl's own tilted coordinates the descent path mixes the two directions
-		together, so you cannot read off a clean rate for either one. The fix is to
-		use the bowl's own axes as coordinates. These special directions, the
-		eigenvectors, are the ones the dynamics never mixes. Along a single one of
-		them the error falls in proportion to how much is left, the differential
-		equation here, which is the same law as a cooling cup of coffee or
-		radioactive half-life, so it decays exponentially, alpha of t equals alpha of
-		zero times e to the minus lambda t. The rate lambda is the eigenvalue, large
-		is fast, small is slow. Everything after this works out what these directions
-		and rates are for a real network on the circle.
+		\begin{itemize}
+			\item Gradient descent reduces the error by moving downhill. In ordinary coordinates, the motion can look coupled: changing one coordinate also affects the other.
+			\item But if we rotate to the bowl's own axes, the motion separates into independent directions.
+			\item Along each direction, the error decays in proportion to how much error is still left there.
+			\item This gives exponential decay. The special directions are eigenvectors, and their rates are eigenvalues.
+			\item The question is: what are the corresponding directions and rates for a neural network?
+		\end{itemize}
 	}
 	\vspace{0.4em}
 	\slidetitle{BACKGROUND}{Each direction has its own rate}
@@ -604,8 +640,8 @@
 		\begin{bluecard}[width=0.9\linewidth]
 			\centering
 			{\scriptsize {\bfseries Eigenvector:} a direction the dynamics keeps separate, never mixing it with others.\quad
-				{\bfseries Eigenvalue} $\lambda$: its rate, large is fast, small is slow.}\par\vspace{0.8mm}
-			{\bfseries What are these directions and rates for a neural network?}
+				{\bfseries Eigenvalue} $\lambda$: its rate, large is fast, small is slow.}\par\vspace{0.2mm}
+			{\bfseries \scriptsize What are these directions and rates for a neural network?}
 		\end{bluecard}
 	}
 \end{frame}
@@ -615,18 +651,20 @@
 % closing question in principle; stays model-agnostic (no f_m yet, that is SETUP).
 \begin{frame}
 	\note<1->{
-		Picking up the question from the last slide. For a single direction the error
-		obeyed alpha dot equals minus lambda alpha, the rate was one number. For a
-		network the error is a whole function, the residual, and it still falls in
-		proportion to how much is left, but the proportion is no longer a number. It
-		is an operator acting on the whole function, and that operator is the neural
-		tangent kernel. The residual obeys r dot equals minus T r. This holds for any
-		differentiable model under gradient flow, which is why I am not writing the
-		network down yet. If T were a fixed operator, diagonalizing it would split
-		this back into one copy of the scalar law per eigenfunction, alpha k dot
-		equals minus lambda k alpha k. So the eigenfunctions are the directions and
-		the eigenvalues are the rates, and the question from the last slide becomes:
-		what is the spectrum of T.
+		\begin{itemize}
+			\item If our error only has 1 direction then the rate is usually given by a single number
+			\item But our error is a whole function, so we are no longer
+			      tracking a single scalar error; we are tracking the evolution of
+			      the entire residual function, so that single scalar is replaced by
+			      an operator T, which is the Neural Tangent Kernel operator.
+			\item This equation is not as simple to solve as the example we saw
+			      earlier because T changes over time, i.e. the rate changes over
+			      time. If the operator were constant, then we could diagonalize it and split
+			      it back into one copy of scalar law per direction, where each
+			      direction was an eigenfunction and rates the eigenvalues. Together,
+			      this is called the spectrum of an operator.
+			\item So to understand training, we need to understand the spectrum of this operator...
+		\end{itemize}
 	}
 	\vspace{0.4em}
 	\slidetitle{BACKGROUND}{The rate becomes an operator: the Neural Tangent Kernel (\textcolor{muted}{\href{https://arxiv.org/abs/1806.07572}{Jacot et al., 2018}})}
@@ -644,25 +682,28 @@
 			\end{bluecard}
 		\end{column}
 		\begin{column}{0.49\textwidth}
+			\pause
 			\begin{greencard}[height=26mm]
 				{\textcolor{green}{\bfseries A whole function}}\par\vspace{1.5mm}
 				\[ \partial_t r_t = -T_t\,r_t \]
-				{\scriptsize The rate becomes an operator $T_t$, the network's tangent kernel (NTK).}
+				{\scriptsize The rate becomes an operator $T_t$, the network's Neural Tangent Kernel (NTK) operator.}
 			\end{greencard}
 		\end{column}
 	\end{columns}
 
 	\vspace{1.5mm}
+	\pause
 	\begin{whitecard}
 		\begin{columns}[c,onlytextwidth]
-			\begin{column}{0.60\textwidth}
+			\begin{column}{0.70\textwidth}
+				\centering
 				{\scriptsize\raggedright If $T_t$ were time-independent, diagonalizing it
 					would split this back into one copy of the scalar law per
 					direction \(k\):\par}
 			\end{column}
-			\begin{column}{0.39\textwidth}
+			\begin{column}{0.30\textwidth}
 				\vspace{-1.5mm}
-				\[ \dot\alpha_k = -\lambda_k\,\alpha_k \]
+				\[ \frac{d}{dt}\alpha_k = -\lambda_k\,\alpha_k \]
 				\vspace{-4mm}
 			\end{column}
 		\end{columns}
@@ -672,11 +713,12 @@
 		\;\textcolor{muted}{$\cdot$}\;
 		{\bfseries eigenvalues} $\lambda_k$ are the rates
 		\;\textcolor{muted}{$\cdot$}\;
-		together they form the {\bfseries spectrum} of the time-independent $T$\par}
+		together they form the {\bfseries spectrum} of the time-independent operator $T$\par}
 	\end{whitecard}
 
 	\centering
 	\vspace{1mm}
+	\pause
 	\begin{bluecard}[width=0.6\linewidth]
 		\centering{\bfseries So the question becomes: what is the spectrum of $T$?}
 	\end{bluecard}
@@ -686,17 +728,13 @@
 % Bridge 2: why the thesis idealizes before analyzing. Two obstructions + branching roadmap.
 \begin{frame}
 	\note<1->{
-		To read off a fixed set of directions and rates, T has to be one fixed
-		operator, and it is not yet. Two things are in the way. First, it is time
-		dependent: T changes as the network trains, so its directions and rates
-		drift. We freeze it to get a constant operator. Second, it depends on the
-		scale: at finite data it depends on the sampled points, and at finite width
-		it is random because it depends on the initialization. We take the continuum
-		and infinite width, where it becomes a single deterministic operator with
-		exact structure. The strategy for the rest of the talk: analyze this clean
-		reference first, where the spectrum is exact, then relax each idealization
-		separately. Finite data is one perturbation of the reference; finite width
-		is the other, first with the kernel frozen, then letting it evolve.
+		\begin{itemize}
+			\item There are two obstacles to reading off fixed directions and rates.
+			\item As discussed before, the operator changes as we train the network so the directions and the rates change continuously
+			\item Well, researchers at EPFL showed that if the width of the network goes to infinity, then T becomes a constant operator.
+			\item The other problem is with finite data, the operator depends on the sampled points. To get a clean reference, we first replace the sample by the full input distribution.
+			\item This allows us to work backwards to answer our questions. First build a reference with infinite limits then relax each assumption and see what changes.
+		\end{itemize}
 	}
 	\vspace{0.4em}
 	\slidetitle{SETUP}{Making the dynamics analyzable}
@@ -706,46 +744,58 @@
 
 	\vspace{2mm}
 	\begin{columns}[T,onlytextwidth]
+		% Left Column: Time-dependent problem (Slide 1), Solution reveals on Slide 2
 		\begin{column}{0.49\textwidth}
 			\begin{orangecard}[height=28mm]
 				{\textcolor{orange}{\bfseries Time-dependent}}\par\vspace{1.5mm}
 				{\scriptsize $T_t$ changes as the network trains, so its directions and rates drift.}\par\vspace{1.5mm}
-				{\scriptsize \textbf{Solution:} Take width to infinity to get a constant operator $T$
-					(\textcolor{muted}{\href{https://arxiv.org/abs/1806.07572}{Jacot et al., 2018}}).}
+				\uncover<2->{
+					{\scriptsize \textbf{Solution:} Take width to infinity to get a constant operator $T$
+							(\textcolor{muted}{\href{https://arxiv.org/abs/1806.07572}{Jacot et al., 2018}}).}
+				}
 			\end{orangecard}
 		\end{column}
+
+		% Right Column: Finite scale problem appears on Slide 3, Solution reveals on Slide 4
 		\begin{column}{0.49\textwidth}
-			\begin{purplecard}[height=28mm]
-				{\textcolor{purple}{\bfseries Finite scale}}\par\vspace{1.5mm}
-				{\scriptsize At finite data $T$ depends on the sampled input points, so it changes on what it sees.}\par\vspace{1.5mm}
-				{\scriptsize \textbf{Solution:} Consider using the continuum as input.
-					(\textcolor{muted}{\href{https://arxiv.org/abs/1806.07572}{Jacot et al., 2018}, \href{https://arxiv.org/abs/1912.01198}{Cao et al., 2019}}).}
-			\end{purplecard}
+			\uncover<3->{
+				\begin{purplecard}[height=28mm]
+					{\textcolor{purple}{\bfseries Finite scale}}\par\vspace{1.5mm}
+					{\scriptsize At finite data $T$ depends on the sampled input points, so it changes on what it sees.}\par\vspace{1.5mm}
+					\uncover<4->{
+						{\scriptsize \textbf{Solution:} Consider using the continuum as input.
+								(\textcolor{muted}{\href{https://arxiv.org/abs/1806.07572}{Jacot et al., 2018}, \href{https://arxiv.org/abs/1912.01198}{Cao et al., 2019}}).}
+					}
+				\end{purplecard}
+			}
 		\end{column}
 	\end{columns}
 
 	\vspace{1mm}
-	\begin{whitecard}
-		\centering
-		{\scriptsize\bfseries Strategy:}\ {\scriptsize build the clean reference, then relax each idealization separately.}\par\vspace{1.5mm}
-		\begin{tikzpicture}[
-				pillnode/.style={
-						rounded corners=8pt,
-						inner xsep=6pt,
-						inner ysep=3pt,
-						font=\scriptsize\bfseries
-					}
-			]
-			\node[pillnode, fill=bluebg, text=blue] (ref) at (0,0) {Reference model};
-			\node[pillnode, fill=yellowbg, text=orange] (data) at (3.6,0.45) {Finite data};
-			\node[pillnode, fill=purplebg, text=purple] (width) at (3.6,-0.45) {Finite width};
-			\node[pillnode, fill=greenbg, text=green] (evol) at (6.6,-0.45) {Evolving};
+	% Slide 5: The Strategy card and TikZ roadmap reveal at the very end as the final punchline
+	\uncover<5->{
+		\begin{whitecard}
+			\centering
+			{\scriptsize\bfseries Strategy:}\ {\scriptsize build the clean reference, then relax each idealization separately.}\par\vspace{1.5mm}
+			\begin{tikzpicture}[
+					pillnode/.style={
+							rounded corners=8pt,
+							inner xsep=6pt,
+							inner ysep=3pt,
+							font=\scriptsize\bfseries
+						}
+				]
+				\node[pillnode, fill=bluebg, text=blue] (ref) at (0,0) {Reference model};
+				\node[pillnode, fill=yellowbg, text=orange] (data) at (3.6,0.45) {Finite data};
+				\node[pillnode, fill=purplebg, text=purple] (width) at (3.6,-0.45) {Finite width};
+				\node[pillnode, fill=greenbg, text=green] (evol) at (6.6,-0.45) {Evolving};
 
-			\draw[muted,->] (ref.east) -- (data.west);
-			\draw[muted,->] (ref.east) -- (width.west);
-			\draw[muted,->] (width.east) -- (evol.west);
-		\end{tikzpicture}
-	\end{whitecard}
+				\draw[muted,->] (ref.east) -- (data.west);
+				\draw[muted,->] (ref.east) -- (width.west);
+				\draw[muted,->] (width.east) -- (evol.west);
+			\end{tikzpicture}
+		\end{whitecard}
+	}
 \end{frame}
 
 % % ------------------------------------------------------------------
@@ -836,11 +886,12 @@
 \begin{frame}
 	\note<1->{
 		\begin{itemize}
-			\item Instantiate the abstract operator story.
-			\item Circle gives Fourier modes: coarse to fine.
-			\item Model: one-hidden-layer ReLU network.
-			\item Define \(\phi_k\) as a Fourier mode and track coefficients \(\alpha_k(t)\).
-			\item Next: ideal limit makes these exact eigen-directions.
+			\item The unit circle gives us a natural language for dealing with the Fourier modes. We assume that our inputs are uniformly distributed over a unit circle.
+			\item We consider a target made of different Fourier modes, similar to what we saw in the beginning.
+			\item The model is a one-hidden-layer ReLU neural network of width m with weights
+			      initialized using a normal distribution and trainable bias that is
+			      initialized to 0.
+			\item The main question is: what controls the decay of each Fourier coefficient of the residual?
 		\end{itemize}
 	}
 	\vspace{0em}
@@ -853,45 +904,54 @@
 			{\scriptsize
 				\begin{itemize}
 					\setlength{\itemsep}{1.0mm}
-					\item Inputs are points on the unit circle with uniform distribution:
+					% Slide 1: Show the input data description instantly
+					\item<1-> Inputs are points on the unit circle with uniform distribution:
 					      \[
 						      x(\varphi)=(\cos\varphi,\sin\varphi)\in S^1.
 					      \]
 
-					\item Fourier basis functions are written compactly as
+					      % Slide 2: Bring in the Fourier basis mathematical definition
+					\item<2-> Fourier basis functions are written compactly as
 					      \[
 						      \phi_k \in \{1\}\cup\{\sin(k\varphi),\cos(k\varphi): k\ge1\}.
 					      \]
 
-					\item The target is a Fourier sum with amplitudes \(c_k\), the weights of each mode:
+					      % Slide 2: Bring in the target equation bullet point
+					\item<2-> The target is a Fourier sum with amplitudes \(c_k\), the weights of each mode:
 					      \[
 						      f^\star(\varphi)=\sum_k c_k\phi_k(\varphi),
 						      \qquad
 						      r_t=f_t-f^\star=\sum_k\alpha_k(t)\phi_k.
 					      \]
 
-					\item The model is a one-hidden-layer ReLU network of width \(m\), initialized with
+					      % Slide 3: Bring in the neural network architectural details
+					\item<3-> The model is a one-hidden-layer ReLU network of width \(m\), initialized with
 					      \(w_i\sim\mathcal N(0,I_2)\), \(a_i\sim\mathcal N(0,1)\), and \(b_i=0\).
 
-					\item \textbf{Question:} what controls the decay of each \(\alpha_k(t)\)?
+					      % Slide 4: Conclude with the core underlying research question
+					\item<4-> \textbf{Question:} what controls the decay of each \(\alpha_k(t)\)?
 				\end{itemize}
 			}
 
 			\vspace{1mm}
 			\centering
-			\begin{tikzpicture}[x=1cm,y=1cm,scale=0.78]
-				\draw[line] (0,0) -- (4.4,0);
-				\draw[line] (0,-0.55) -- (0,0.82);
-				\draw[tudcyan,very thick,domain=0:6.283,samples=100,smooth,variable=\t]
-				plot ({4.4*\t/6.283},
-				{0.24*(1+0.9*cos(deg(\t))+0.7*cos(deg(3*\t))-0.5*sin(deg(5*\t))-0.4*sin(deg(6*\t))-0.5)});
-				\node[font=\tiny,text=muted,anchor=west] at (4.46,0) {$\varphi$};
-				\node[font=\tiny,text=muted,anchor=south] at (2.2,0.82) {target \(f^\star\)};
-			\end{tikzpicture}
+			% Slide 2: The target function visualization plot appears here
+			\uncover<2->{
+				\begin{tikzpicture}[x=1cm,y=1cm,scale=0.78]
+					\draw[line] (0,0) -- (4.4,0);
+					\draw[line] (0,-0.55) -- (0,0.82);
+					\draw[tudcyan,very thick,domain=0:6.283,samples=100,smooth,variable=\t]
+					plot ({4.4*\t/6.283},
+					{0.24*(1+0.9*cos(deg(\t))+0.7*cos(deg(3*\t))-0.5*sin(deg(5*\t))-0.4*sin(deg(6*\t))-0.5)});
+					\node[font=\tiny,text=muted,anchor=west] at (4.46,0) {$\varphi$};
+					\node[font=\tiny,text=muted,anchor=south] at (2.2,0.82) {target \(f^\star\)};
+				\end{tikzpicture}
+			}
 		\end{column}
 
 		\begin{column}{0.44\textwidth}
 			\centering
+			% Slide 1: The geometric S^1 coordinate circle displays instantly
 			\begin{tikzpicture}[scale=0.78]
 				\draw[line] (-1.2,0) -- (1.2,0);
 				\draw[line] (0,-1.2) -- (0,1.2);
@@ -906,7 +966,10 @@
 			\end{tikzpicture}
 
 			\vspace{2mm}
-			\input{mlp_diagram.tex}
+			% Slide 3: The multi-layer perceptron architecture diagram appears here
+			\uncover<3->{
+				\input{mlp_diagram.tex}
+			}
 		\end{column}
 	\end{columns}
 \end{frame}
@@ -918,11 +981,15 @@
 \begin{frame}
 	\note<1->{
 		\begin{itemize}
-			\item Infinite width and continuum data.
-			\item Uniform circle makes \(T\) a convolution operator.
-			\item Fourier modes diagonalize convolution.
-			\item Each mode decays independently at rate \(\lambda_k\).
-			\item Formula shows \(\lambda_k\sim k^{-2}\): high frequencies are slow.
+			\item And infinite width and the continuum of input data, the
+			      operator, under the uniform measure, becomes an integral operator
+			      of this form. This operation is called a convolution where Theta is
+			      the kernel of convolution, the neural tangent kernel, the object which
+			      becomes fixed and rotation invariant under the infinite width
+			      limit.
+			\item The eigenfunctions of a convolution operator are the Fourier modes so error along each of these modes decays at a rate dictated by their corresponding eigenvalues.
+			\item An explicit computation shows us that low frequency modes have larger eigenvalues so they decay faster than higher frequency modes that have smaller eigenvalues.
+			\item This gives an exact explanation for why coarse structure is learnt first by a neural network.
 		\end{itemize}
 	}
 	\vspace{0.2em}
@@ -932,21 +999,30 @@
 	{\raggedleft\tiny\textcolor{muted}{recall: fixed \(T\) gives \(\dot\alpha_k=-\lambda_k\alpha_k\)}\par}
 
 	\vspace{0.5mm}
-	\begin{whitecard}
+	\begin{whitecard}[height=22mm]
 		{\scriptsize
-			With uniform measure \(\mu(d\psi)=d\psi/(2\pi)\), the fixed operator acts by
-		}\par\vspace{-0.5mm}
-		{\scriptsize
+			\visible<1->With uniform measure \(\mu(d\psi)=d\psi/(2\pi)\), the fixed operator acts by
+		}\hfill
+		\visible<3->{\tiny\textcolor{muted}{%
+				\(\displaystyle
+				\Theta(\varphi,\psi)=
+				\left\langle
+				\nabla_\theta f(x(\varphi)),
+				\nabla_\theta f(x(\psi))
+				\right\rangle
+				\)
+			}}\par\vspace{-0.5mm}
+		\visible<2->{\scriptsize
 			\[
 				(T r)(\varphi)=
 				\int_{0}^{2\pi}\Theta(\varphi-\psi)\,r(\psi)\,\frac{d\psi}{2\pi}.
 			\]
 		}
 		\vspace{-1mm}
-		{\scriptsize
+		\visible<4->{\scriptsize
 			Because this is a convolution on the circle, the Fourier modes are eigenfunctions:
 		}\par
-		{\scriptsize
+		\visible<5->{\scriptsize
 		\[
 			T\phi_k = \lambda_k \phi_k,
 			\qquad
@@ -958,46 +1034,45 @@
 	\vspace{0.5mm}
 	\begin{columns}[T,onlytextwidth]
 		\begin{column}{0.53\textwidth}
-			\begin{whitecard}[height=35mm]
-				{\scriptsize\bfseries Explicit eigenvalues}\hfill{\tiny\textcolor{muted}{Thm.~5.2}}\par\vspace{0.5mm}
-				{\scriptsize
-					\begingroup
-					\renewcommand{\arraystretch}{1.5}
-					\[
-						\lambda_k =
-						\left\{
-						\begin{array}{@{}ll@{}}
-							\frac14+\frac{3}{\pi^2},
-							 & k=0,                 \\[2mm]
-							\frac14+\frac{1}{\pi^2},
-							 & k=1,                 \\[2mm]
-							\frac{k^2+3}{\pi^2(k^2-1)^2},
-							 & k\ge 2 \text{ even}, \\[2mm]
-							\frac{1}{\pi^2 k^2},
-							 & k\ge 3 \text{ odd}.
-						\end{array}
-						\right.
-					\]
-					\endgroup
-				}
-			\end{whitecard}
+			\visible<6->{\begin{whitecard}[height=35mm]
+					{\scriptsize\bfseries Explicit eigenvalues}\hfill{\tiny\textcolor{muted}{Thm.~5.2}}\par\vspace{0.5mm}
+					{\scriptsize
+						\begingroup
+						\renewcommand{\arraystretch}{1.5}
+						\[
+							\lambda_k =
+							\left\{
+							\begin{array}{@{}ll@{}}
+								\frac14+\frac{3}{\pi^2},
+								 & k=0,                 \\[2mm]
+								\frac14+\frac{1}{\pi^2},
+								 & k=1,                 \\[2mm]
+								\frac{k^2+3}{\pi^2(k^2-1)^2},
+								 & k\ge 2 \text{ even}, \\[2mm]
+								\frac{1}{\pi^2 k^2},
+								 & k\ge 3 \text{ odd}.
+							\end{array}
+							\right.
+						\]
+						\endgroup
+					}
+				\end{whitecard}}
 		\end{column}
 
 		\begin{column}{0.43\textwidth}
-			\begin{bluecard}[height=17mm]
-				{\scriptsize\bfseries Interpretation}\par\vspace{0.5mm}
-				\begin{itemize}\tightlist\scriptsize
-					\item Low frequencies $\implies $ Small \(k\): larger \(\lambda_k\), faster decay.
-					\item High frequencies $\implies$ Large \(k\): \(\lambda_k\sim k^{-2}\), slower decay.
-				\end{itemize}
-			\end{bluecard}
+			\visible<7->{\begin{bluecard}[height=17mm]
+					{\scriptsize\bfseries Interpretation}\par\vspace{0.5mm}
+					\begin{itemize}\tightlist\scriptsize
+						\item Low frequencies $\implies $ Small \(k\): larger \(\lambda_k\), faster decay.
+						\item High frequencies $\implies$ Large \(k\): \(\lambda_k\sim k^{-2}\), slower decay.
+					\end{itemize}
+				\end{bluecard}}
 
 			\vspace{1mm}
-			\begin{whitecard}[height=11mm]
-				\centering
-				{\scriptsize\bfseries This exactly predicts the demo:}
-				{\scriptsize coarse structure first, fine detail later.}
-			\end{whitecard}
+			\visible<8->{\begin{whitecard}[height=11mm]
+					\centering
+					{\scriptsize This answers the question of why coarse structure first, fine detail later.}
+				\end{whitecard}}
 		\end{column}
 	\end{columns}
 
@@ -1012,18 +1087,9 @@
 \begin{frame}
 	\note<1->{
 		\begin{itemize}
-			\item The ideal model is useful only if we understand what happens when its assumptions are relaxed.
-			\item Perturbation 1: finite samples.
-			\item Replace continuum measure by random sample points:
-			      \[
-				      \mu \rightsquigarrow \frac1n\sum_i\delta_{\varphi_i}.
-			      \]
-			\item This breaks exact Fourier orthogonality and exact diagonalization.
-			\item Question: do Fourier modes still behave approximately like eigenvectors of the sampled operator?
-			\item Perturbation 2: frozen finite width.
-			\item Replace deterministic $T$ by random finite-width tangent operator $T_0^{(m)}$.
-			\item Question: are Fourier eigenspaces and learning rates preserved?
-			\item Main theoretical part: control both finite data and frozen finite width.
+			\item But does this explanation hold when we start relaxing the assumptions?
+			\item More precisely, what happens if we replace the continuum measure with a sum of dirac measures on n sampled point? Do the Fourier modes still remain the eigenfunctions?
+			\item In another direction, what happens if we replace the infinite width network by finite width network? Does the finite width NTK operator preserve the geometry of Fourier modes?
 		\end{itemize}
 	}
 	\slidetitle{THESIS QUESTION}{Does this spectral picture survive outside the ideal limit?}
@@ -1080,7 +1146,7 @@
 					\[
 						T
 						\quad\rightsquigarrow\quad
-						T_0^{(m)}
+						T^{(m)}
 					\]
 
 					\vspace{1mm}
@@ -1108,11 +1174,19 @@
 \begin{frame}
 	\note<1->{
 		\begin{itemize}
-			\item Fix one low-frequency Fourier subspace.
-			\item On that subspace, the ideal operator is diagonal.
-			\item Finite samples have an exponential tail in \(n\).
-			\item Frozen finite width is unbiased and has an exponential tail in \(m\).
-			\item Detailed Gram and action bounds are in backup.
+			\item That brings us to our main results. We answer this question by looking on
+			      a subspace $H_K$, spanned by the Fourier modes upto a frequency K.
+			      If $\Lambda_K$ is the ideal diagonal matrix consisting of the
+			      eigenvalues corresponding to each frequency. Let $T_K$ be the
+			      operator restricted to this subspace $H_K$.
+			\item For n points sampled uniformly on the unit circle, we prove that with
+			      high probability, the deviation between $T_K$ and $\Lambda_K$ is
+			      controlled and of order 1/sqrt(n), in the number of samples.
+			\item Similarly, if our network has a finite width of m neurons, then we prove that with high probability, the deviation between $T_K$ and $\Lambda_K$ is similarly controlled.
+			\item Crucially, in both cases, the probability of a large deviation occurring drops exponentially with the number of samples or the number of neurons.
+			\item What this gives us is confidence that our infinite-limit spectral
+			      analysis remains fully valid and predictive in these practical,
+			      finite settings.
 		\end{itemize}
 	}
 	\slidetitle{NON-ASYMPTOTIC CONTROL}{Main results: the spectral picture survives finite scale}
@@ -1130,79 +1204,136 @@
 	\vspace{1mm}
 	\begin{columns}[T,onlytextwidth]
 		\begin{column}{0.49\textwidth}
-			\begin{yellowcard}[height=36mm]
-				{\textcolor{orange}{\bfseries Finite samples}\hfill{\tiny\textcolor{muted}{Thm.~5.5}}}\par\vspace{1mm}
-				{\scriptsize Let \(T_K\) be the sampled operator on \(\mathcal H_K\), using \(n\) uniform samples from \([0,2\pi)\). For every \(\varepsilon>0\),}\par\vspace{-1.5mm}
-				{\scriptsize
+			\visible<2->{%
+				\begin{yellowcard}[height=36mm]
+					{\textcolor{orange}{\bfseries Finite samples}\hfill{\tiny\textcolor{muted}{Thm.~5.5}}}\par\vspace{1mm}
+
+					\visible<2->{%
+					{\scriptsize Let \(T_K\) be the sampled operator on \(\mathcal H_K\), using \(n\) uniform samples from \([0,2\pi)\). For every \(\varepsilon>0\),}\par\vspace{-1.5mm}
+					}
+
+					\visible<3->{%
+						{\scriptsize
+								\[
+									\mathbb P\!\left(
+									\|T_K-\Lambda_K\|_{\max}\ge\varepsilon
+									\right)
+									\le
+									2d^2\exp\!\left(-C n\varepsilon^2\right).
+								\]
+							}
+					}
+
+					\vspace{-3mm}\par
+
+					\visible<4->{%
+						{\scriptsize Equivalently, with probability at least \(1-\delta\),}\par\vspace{-1.5mm}
+					}
+
+					\visible<5->{%
+					{\scriptsize
+					\[
+						\|T_K-\Lambda_K\|_{\max}
+						=
+						O\!\left(\sqrt{\frac{\log(d/\delta)}{n}}\right).
+					\]
+					}
+					}
+				\end{yellowcard}
+			}
+		\end{column}
+
+		\begin{column}{0.49\textwidth}
+			\visible<6->{%
+				\begin{purplecard}[height=36mm]
+					{\textcolor{purple}{\bfseries Finite width}\hfill{\tiny\textcolor{muted}{Thm.~5.6}}}\par\vspace{1mm}
+
+					\visible<6->{%
+					{\scriptsize Let \(T_K^{(m)}\) be the width-\(m\) tangent operator on \(\mathcal H_K\). Then \(\mathbb E[T_K^{(m)}]=\Lambda_K\), and for every \(\varepsilon>0\),}\par\vspace{-1.5mm}
+					}
+
+					\visible<7->{%
+					{\scriptsize
 					\[
 						\mathbb P\!\left(
-						\|T_K-\Lambda_K\|_{\max}\ge\varepsilon
+						\|T_K^{(m)}-\Lambda_K\|_{\max}\ge\varepsilon
 						\right)
 						\le
-						2d^2\exp\!\left(-C n\varepsilon^2\right).
+						2d^2\exp\!\left(-C m\varepsilon^2\right).
 					\]
-				}
-				\vspace{-3mm}\par
-				{\scriptsize Equivalently, with probability at least \(1-\delta\),}\par\vspace{-1.5mm}
-				{\scriptsize
-				\[
-					\|T_K-\Lambda_K\|_{\max}
-					=
-					O\!\left(\sqrt{\frac{\log(d/\delta)}{n}}\right).
-				\]
-				}
-			\end{yellowcard}
-		\end{column}
-		\pause
-		\begin{column}{0.49\textwidth}
-			\begin{purplecard}[height=36mm]
-				{\textcolor{purple}{\bfseries Finite width}\hfill{\tiny\textcolor{muted}{Thm.~5.6}}}\par\vspace{1mm}
-				{\scriptsize Let \(T_K^{(m)}\) be the width-\(m\) tangent operator on \(\mathcal H_K\). Then \(\mathbb E[T_K^{(m)}]=\Lambda_K\), and for every \(\varepsilon>0\),}\par\vspace{-1.5mm}
-				{\scriptsize
-				\[
-					\mathbb P\!\left(
-					\|T_K^{(m)}-\Lambda_K\|_{\max}\ge\varepsilon
-					\right)
-					\le
-					2d^2\exp\!\left(-C m\varepsilon^2\right).
-				\]
-				}
-				\vspace{-3mm}\par
-				{\scriptsize Equivalently, with probability at least \(1-\delta\),}\par\vspace{-1.5mm}
-				{\scriptsize
-				\[
-					\|T_K^{(m)}-\Lambda_K\|_{\max}
-					=
-					O\!\left(\sqrt{\frac{\log(d/\delta)}{m}}\right).
-				\]
-				}
-			\end{purplecard}
+					}
+					}
+
+					\vspace{-3mm}\par
+
+					\visible<8->{%
+						{\scriptsize Equivalently, with probability at least \(1-\delta\),}\par\vspace{-1.5mm}
+					}
+
+					\visible<9->{%
+					{\scriptsize
+					\[
+						\|T_K^{(m)}-\Lambda_K\|_{\max}
+						=
+						O\!\left(\sqrt{\frac{\log(d/\delta)}{m}}\right).
+					\]
+					}
+					}
+				\end{purplecard}
+			}
 		\end{column}
 	\end{columns}
 
 	\vspace{0.5mm}
-	\pause
-	\begin{whitecard}
-		\centering
-		{\scriptsize\bfseries What this gives us:}\ {\scriptsize a way to predict how the learning dynamics change with \(n\) and \(m\). In particular, the finite-sample block tells us how to precondition the operator and reduce the frequency-wise gap in learning rates.}
-	\end{whitecard}
+	\visible<10->{%
+		\begin{whitecard}
+			\centering
+			{\scriptsize\bfseries What this gives us:}\ {\scriptsize a way to predict how the learning dynamics change with \(n\) and \(m\). In particular, the finite-sample block tells us how to precondition the operator and reduce the frequency-wise gap in learning rates.}
+		\end{whitecard}
+	}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{
+		But beyond that, it gives us a concrete way to
+		precondition the training. By knowing these bounds, we can scale
+		each frequency appropriately to reduce the frequency-wise gap in
+		learning rates, ensuring that all components get learned
+		efficiently.
+	}
+	\slidetitle{NON-ASYMPTOTIC CONTROL}{Preconditioning: reducing the frequency-wise gap}
+	{\textcolor{muted}{Knowing the eigenvalue bounds lets us rescale each frequency to equalise learning rates.}}
+
+	\vspace{2mm}
+	\centering
+	\includegraphics[width=0.88\linewidth,keepaspectratio]{all_mode_decay_two_panel_mean_std_n4096.png}
+
+	\vspace{1mm}
+	{\scriptsize\textcolor{muted}{\textbf{Left:} without preconditioning, low
+			frequencies dominate and high frequencies barely decay. \textbf{Right:}
+			scaling each mode by its eigenvalue equalises the learning rates and all
+			components converge at the same speed.}}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}
 	\note<1->{
 		\begin{itemize}
-			\item So far, the story has been: start from the ideal operator, then control finite-sample and frozen finite-width errors.
-			\item But this still leaves out normal training.
-			\item In normal training, the tangent kernel is allowed to move:
-			      \[
-				      T_0^{(m)} \rightsquigarrow T_t^{(m)}.
-			      \]
-			\item The question is whether that movement actually matters.
-			\item At $m=128$ and $m=256$, it clearly does: the evolving kernel reaches lower training error than the frozen one.
-			\item At $m=1024$, the reversal appears: the frozen kernel reaches the lower final loss.
-			\item So kernel evolution seems to be a genuine small-width effect.
-			\item This is the main tension: finite width can improve learning by changing the operator, but it also breaks the clean spectral reference model.
+			\item However, in the infinite width limit the operator is frozen so the finite
+			      sample perturbation doesn’t allow the network to do any feature
+			      learning. For that we need finite width and the finite widht
+			      results only allow us to control the operator at initialization.
+			      The question thus is what happens to this operator when we let it
+			      evolve via training.
+			\item To isolate this effect, we compare two models. In the frozen
+			      model, the initial kernel is kept fixed and we train by kernel
+			      gradient descent. In the evolving model, the network weights are
+			      updated normally, so the kernel can change.
+			\item We observe that at low widths, this evolution helps the
+			      network reach a low training loss than it’s frozen counterpart.
+			      However, this effect vanishes when we increase the width.
+			\item So what is happening in the low width networks?
 		\end{itemize}
 	}
 	\slidetitle{EVOLVING KERNEL}{A finite-width effect not explained by the NTK at initialization}
@@ -1231,13 +1362,14 @@
 % ------------------------------------------------------------------
 \begin{frame}
 	\note<1->{
-		The first possible explanation is geometric: maybe training helps because the
-		evolving kernel aligns its eigenspaces better with the Fourier modes. These
-		plots rule out that simple story. At width 128, the low modes remain aligned,
-		but the higher-frequency blocks lose alignment. At width 1024, the frozen
-		initialization is already very well aligned, and the evolving kernel again
-		moves several higher-frequency blocks away from the Fourier reference. So
-		the small-width improvement is not coming from better Fourier alignment.
+		\begin{itemize}
+			\item A first possible explanation is that training improves alignment with the Fourier subspaces.
+			\item So we measure the similarity between the eigenspaces of the evolving
+			      kernel to that of the Fourier basis, if the eigenspace of the
+			      evolving kernel operator aligns well with a frequency subspace then
+			      the similarity score should go towards 1.
+			\item Training seems to be making alignment worse compared to the alignment at initialization. And the trend and scale is consistent across widths.
+		\end{itemize}
 	}
 	\slidetitle{EVOLVING KERNEL}{First check: does alignment improve?}
 	{\textcolor{muted}{If evolution helped by preserving Fourier geometry, the alignment curves should rise above their initial alignment. They do not.}}
@@ -1251,6 +1383,7 @@
 				{\tiny $m=128$: higher-frequency alignment drops sharply.}
 			\end{whitecard}
 		\end{column}
+		\pause
 		\begin{column}{0.495\textwidth}
 			\begin{whitecard}[left=0.7mm,right=0.7mm,top=0.7mm,bottom=0.9mm]
 				\centering
@@ -1261,6 +1394,7 @@
 	\end{columns}
 
 	\vspace{1mm}
+	\pause
 	\begin{bluecard}[height=8mm,valign=center]
 		\centering
 		{\scriptsize\bfseries Alignment does not explain why the evolving kernel reaches lower training error at lower widths.}
@@ -1270,13 +1404,12 @@
 % ------------------------------------------------------------------
 \begin{frame}
 	\note<1->{
-		The second explanation is strength. Even if the eigenspaces do not become
-		better aligned with the Fourier modes, the operator can still become stronger
-		on some low-frequency blocks. This is what the spectral-strength plots suggest.
-		At width 128, the constant block and first frequency increase sharply, with a
-		smaller increase for k equals 2. At width 1024, the same pattern is visible
-		but much weaker. This does not prove a mechanism, but it suggests that the
-		low-frequency preference is still involved in the evolving-kernel behaviour.
+		\begin{itemize}
+			\item Second explanation could be that maybe the evolving kernel is becoming stronger in some sense on certain frequency subspaces.
+			\item We track the average eigenvalue associated with each frequency block. Here we see a clear increase in low-frequency strength, especially for small width.
+			\item At smaller widths, this increase is very sharp while at higher widths it is much weaker.
+			\item This doesn’t show a mechanism but this correlation hints that some low-frequency preference still persists in the evolving kernel behaviour.
+		\end{itemize}
 	}
 	\slidetitle{EVOLVING KERNEL}{What changes: low-frequency strength rises}
 	{\textcolor{muted}{The moving kernel becomes stronger on some low-frequency blocks, even without better Fourier alignment.}}
@@ -1290,6 +1423,7 @@
 				{\tiny $m=128$: large increase in $k=0$ and $k=1$.}
 			\end{whitecard}
 		\end{column}
+		\pause
 		\begin{column}{0.49\textwidth}
 			\begin{whitecard}
 				\centering
@@ -1300,22 +1434,41 @@
 	\end{columns}
 
 	\vspace{1mm}
+	\pause
 	\begin{bluecard}
 		\centering
-		{\bfseries The low-frequency preference is still visible, but the mechanism is not fully explained.}
+		{\bfseries \scriptsize The low-frequency preference is still visible, but the mechanism is not fully explained.}
 	\end{bluecard}
 
 	\vspace{0.7mm}
+	\pause
 	\begin{whitecard}[height=8mm,valign=center]
 		\centering
-		{\tiny This is a diagnostic correlation, not a causal explanation.\quad
+		{\tiny This is a correlation, not a causal explanation.\quad
 			The effect is strongest at small width and much weaker at $m=1024$.}
 	\end{whitecard}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}
-	\note<1->{ Map each answer back to the three questions posed early in the talk. }
+	\note<1->{
+		To summarize, the three questions from the start have the following
+		answers.
+
+		First, in the ideal NTK model, the learning speed of each frequency is
+		set by the NTK eigenvalue. Low frequencies have larger eigenvalues, so
+		they are learned faster.
+
+		Second, this picture survives finite samples on a fixed low-frequency
+		subspace, with explicit \(O(n^{-1/2})\) control.
+
+		Third, it also survives finite width at initialization, with explicit
+		\(O(m^{-1/2})\) control.
+
+		Once the kernel evolves during training, the clean spectral picture no
+		longer fully explains the dynamics, but we empirically see increased
+		low-frequency strength at small width.
+	}
 	\slidetitle{CONCLUSION}{What we can now say}
 	{\textcolor{muted}{The three questions from the start, answered.}}
 
@@ -1328,11 +1481,13 @@
 				      \item Mode-wise rates are eigenvalues of the NTK; $\lambda_k\sim k^{-2}$, so low frequencies are learned first.
 			      \end{itemize}
 
+			      \pause
 			\item[\questionnum{green}{2}] {\bfseries Does this survive with only $n$ sampled points?}\enspace{\scriptsize\textcolor{green}{\emph{RQ1}}}
 			      \begin{itemize}\tightlist\scriptsize
 				      \item Yes. Finite samples preserve the picture with explicit $O(n^{-1/2})$ control.
 			      \end{itemize}
 
+			      \pause
 			\item[\questionnum{orange}{3}] {\bfseries Does it survive with finitely many neurons, at init and during training?}\enspace{\scriptsize\textcolor{orange}{\emph{RQ2}}}
 			      \begin{itemize}\tightlist\scriptsize
 				      \item At initialisation, yes, with explicit $O(m^{-1/2})$ control. Once the kernel evolves the clean spectral picture no longer fully describes training: we observe increased low-frequency spectral strength alongside lower training error, but the cause is still open.
@@ -1344,109 +1499,199 @@
 % ------------------------------------------------------------------
 \begin{frame}
 	\note<1->{
-		The exact Fourier picture rests on four assumptions, and each one tells us
-		what changes when it is relaxed. The uniform measure is what makes the kernel
-		a convolution, so the Fourier modes are its eigenfunctions; a non-uniform
-		density or Gaussian inputs change the basis to Hermite polynomials, but
-		eigenvalue size still sets the rates, and the proofs would need redoing for
-		unbounded support. ReLU fixes the polynomial decay of the spectrum; a smooth
-		activation keeps the same eigenbasis but decays faster. Freezing the kernel
-		is what gives the concentration bounds; letting it evolve is the regime we
-		only study empirically. And the bounds hold on a fixed low-frequency block,
-		not uniformly over all modes. The point is that the framework is robust in
-		direction, but the guarantees are local to these assumptions.
+		Let us reflect on the assumptions behind our results.
+		\begin{itemize}
+
+			\item We relied on a clean setting: uniform distribution on the unit circle gives
+			      a convolution, hence Fourier modes are exact eigenfunctions. If we change
+			      the distribution, it is no longer a convolution, and we get different
+			      eigenfunctions. For instance, with Gaussian measure, we would expect the eigenfunctions
+			      to be Hermite polynomials, the orthogonal basis of $L^2$ functions with Gaussian measure.
+
+			\item We used one hidden layer so we could explicitly compute the eigenvalues.
+			      If we change the architecture, the kernel changes, and so
+			      does the spectrum. Deeper networks may still preserve Fourier
+			      modes under rotation symmetry, but the eigenvalues are
+			      different and usually less explicit.
+
+			\item With ReLU, we had polynomial decay in the eigenvalues. Smoother activations like tanh or sigmoid
+			      could decay faster, possibly exponentially, making high frequencies even
+			      slower relative to low frequencies.
+
+			\item Once the kernel evolves, the initial spectrum does not fully explain
+			      training. Empirically, we saw low-frequency boosts at small width.
+
+			\item Finally, our bounds are local to the chosen frequency block. If that block
+			      grows, our bounds grow too.
+		\end{itemize}
 	}
-	\slidetitle{DISCUSSION \& LIMITATIONS}{What we assumed, and what changes if we relax it}
+	\vspace{0.5em}
+	\slidetitle{DISCUSSION \& LIMITATIONS}{Which assumptions carry the result?}
+	{\textcolor{muted}{The exact Fourier picture is local to the clean setting; the operator viewpoint is what survives.}}
 
 	\vspace{2mm}
-	{\renewcommand{\arraystretch}{1.35}
-		\begin{tabular}{@{}p{0.18\linewidth}p{0.33\linewidth}p{0.43\linewidth}@{}}
-			\toprule
-			{\scriptsize\bfseries Assumption} & {\scriptsize\bfseries What it gives us}                                                                                                                                                                                                                   & {\scriptsize\bfseries If we relax it} \\
-			\midrule
-			{\scriptsize\textcolor{blue}{\bfseries Uniform measure on $S^1$}}
-			                                  & {\scriptsize The NTK is a convolution, so the Fourier modes are exactly its eigenfunctions.}
-			                                  & {\scriptsize A non-uniform density or Gaussian inputs change the basis (e.g.\ Hermite polynomials), but eigenvalue size still sets the rates. The bounded-kernel proofs assume a compact domain, so they need rederiving for unbounded support.}                                                  \\
-			{\scriptsize\textcolor{green}{\bfseries ReLU activation}}
-			                                  & {\scriptsize A closed-form spectrum with polynomial decay, $\lambda_k = O(k^{-2})$.}
-			                                  & {\scriptsize A smooth activation keeps the Fourier eigenbasis but decays faster, sharpening the bias. The fixed-kernel analysis carries over with the spectrum recomputed.}                                                                                                                       \\
-			{\scriptsize\textcolor{orange}{\bfseries Frozen (lazy) kernel}}
-			                                  & {\scriptsize Finite width is a controlled perturbation, concentrating at $O(m^{-1/2})$.}
-			                                  & {\scriptsize When the kernel evolves the initial spectrum no longer governs the dynamics; at small width we observe increased low-frequency strength alongside lower training error, with the cause still open. This regime is only studied empirically.}                                         \\
-			{\scriptsize\textcolor{purple}{\bfseries Fixed block $\mathcal H_K$}}
-			                                  & {\scriptsize A controlled entrywise error on a chosen low-frequency block.}
-			                                  & {\scriptsize Over all modes, or with $K$ growing in $n,m$, the entrywise bounds are not sharp where eigenvalues are small and close together; operator-norm tools would tighten them.}                                                                                                            \\
-			\bottomrule
-		\end{tabular}
+
+	{\scriptsize
+		\centering
+		\textbf{Clean setting:}\quad
+		uniform data on \(S^1\)
+		\(\;+\;\)
+		1-hidden-layer
+		\(\;+\;\)
+		ReLU
+		\(\;+\;\)
+		frozen kernel
+		\(\;+\;\)
+		fixed \(\mathcal H_K\)
+		\[
+			\Longrightarrow
+			\quad
+			\text{Fourier modes are exact directions, with explicit rates } \lambda_k.
+		\]
 	}
+
+	\vspace{1mm}
+	{\color{line}\rule{\linewidth}{0.35pt}}
+
+	\vspace{1.5mm}
+	{\scriptsize
+		\begin{itemize}
+			\setlength{\itemsep}{2.2mm}
+
+			\pause
+			\item \textcolor{blue}{\bfseries Change the data distribution:}
+			      Fourier modes need not be the right basis anymore.
+			      On a non-uniform circle, learning follows the eigenfunctions of a density-weighted operator; with Gaussian inputs, the analogue is closer to Hermite-polynomial directions.
+
+			      \pause
+			\item \textcolor{tudcyan}{\bfseries Change the architecture:}
+			      deeper or different networks change the kernel and hence the spectrum.
+			      Symmetry may still give Fourier-like directions, but the rates are different and less explicit.
+
+			      \pause
+			\item \textcolor{green}{\bfseries Change the activation:}
+			      the operator may keep the same eigenbasis under the same symmetry, but the eigenvalues change.
+			      Smoother activations usually make eigenvalues decay faster with frequency, so fine detail becomes even slower.
+
+			      \pause
+			\item \textcolor{orange}{\bfseries Let the kernel evolve:}
+			      the initial spectrum is no longer a complete description.
+			      In our experiments, small-width training increases low-frequency strength, but this is an empirical diagnostic, not a causal theory.
+
+			      \pause
+			\item \textcolor{purple}{\bfseries Leave the fixed block \(\mathcal H_K\):}
+			      the bounds do not control all frequencies at once.
+			      High frequencies are harder because their eigenvalues are smaller, closer together, and more sensitive to perturbations.
+		\end{itemize}
+	}
+
+	\vspace{1mm}
+	{\color{line}\rule{\linewidth}{0.35pt}}
+
+	\vspace{1mm}
+	\centering
+	\pause
+	{\scriptsize\bfseries Takeaway:}
+	{\scriptsize the mechanism is broader than the circle, but the exact Fourier guarantees are not.}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}
 	\note<1->{
-		Where this sits. The NTK turns a non-convex training problem into a linear
-		one that can be characterised exactly, and our networks live between two
-		regimes: lazy training, where the tangent kernel barely moves, and feature
-		learning, where it moves substantially. Four points on where the work sits.
-		First, it makes the NTK spectral-bias mechanism, usually argued
-		asymptotically or shown empirically, explicit on the circle, where every rate
-		is a computable eigenvalue. Second, the infinite-width NTK is often treated as
-		a purely asymptotic object, and we instead give non-asymptotic bounds on a
-		low-frequency block. Third, the fixed kernel is a useful baseline while it
-		stays lazy, but it is not a full account once features are learned, and this
-		work marks where that reduction stops. Fourth, the mechanism is the one
-		practitioners already modify: PINNs rescale this spectrum, and Fourier
-		features and SIREN reshape it. A result on the uniform circle is still far
-		from a guarantee about a deployed model.
+		\begin{itemize}
+			\item The NTK theory gives us a mechanism to study spectral bias and we study
+			      it explicitly in a clean setting.
+			\item The closest, more general result in literature is by Bowman and Montufar
+			      who prove a general closeness result: finite-width, finite-sample
+			      training follows the ideal NTK function-space trajectory up to a
+			      stopping time. This means spectral bias is not just visible on the
+			      training points; it holds as a function-space effect. Compared with
+			      them, this work is narrower but more explicit in separating the effects of
+			      finite-sample and finite-width perturbations via concentration.
+			\item The experiments with evolving kernel sit somewhere at the boundary of lazy training regime by trying to isolate the effect of feature learning.
+			\item Practically, this spectral viewpoint connects to settings
+			      like PINNs where different components of a solution converge at
+			      very different speeds and there are methods similar to our
+			      preconditioning experiments to rescale those directions for the
+			      components.
+			\item In many computer vision networks or networks that are coordinate based,
+			      where the input is a position, finer details are harder to learn so
+			      many works add Fourier features to their inputs and use sinusoidal
+			      activations to change the effective spectrum so high frequency
+			      details are easier to learn. So an understanding of the spectrum
+			      itself can help improve these models.
+			\item Still, a result on the uniform circle is far from a guarantee about a deployed model.
+		\end{itemize}
 	}
+	\vspace{0.5em}
 	\slidetitle{DISCUSSION \& LIMITATIONS}{Where this sits, and where it connects}
 
 	\vspace{2mm}
 	{\small
 		\begin{itemize}
-			\setlength{\itemsep}{2.6mm}
-			\item {\bfseries\textcolor{blue}{An exact, concrete case study}}
+			\setlength{\itemsep}{2.7mm}
+
+			\item {\bfseries\textcolor{blue}{A concrete version of an ideal theory}}
 			      \begin{itemize}\tightlist\scriptsize
-				      \item The NTK spectral-bias mechanism, usually argued asymptotically or shown empirically, made explicit on $S^1$, where every rate is a computable eigenvalue (\textcolor{muted}{\href{https://arxiv.org/abs/1806.07572}{Jacot et al., 2018}}; \textcolor{muted}{\href{https://arxiv.org/abs/1806.08734}{Rahaman et al., 2019}}).
+				      \item NTK theory already gives the mechanism: in the lazy limit, training is governed by a fixed operator, and its spectrum sets the learning rates. This thesis turns that into a fully explicit reference model on \(S^1\), for the shallow ReLU network actually studied here
+				            (\textcolor{muted}{\href{https://arxiv.org/abs/1806.07572}{Jacot et al., 2018}};
+				            \textcolor{muted}{\href{https://arxiv.org/abs/1912.01198}{Cao et al., 2020}}).
 			      \end{itemize}
 
-			\item {\bfseries\textcolor{green}{Finite scale, not only the limit}}
+			      \pause
+			\item {\bfseries\textcolor{green}{Less general than Bowman--Montúfar, but more inspectable}}
 			      \begin{itemize}\tightlist\scriptsize
-				      \item The infinite-width NTK is often treated as a purely asymptotic object; we add non-asymptotic bounds on a low-frequency block, alongside work probing finite-width corrections and the kernel picture's limits (\textcolor{muted}{\href{https://arxiv.org/abs/1909.05989}{Hanin \& Nica, 2019}}; \textcolor{muted}{\href{https://arxiv.org/abs/2206.10012}{Vyas et al., 2022}}).
+				      \item Bowman \& Montúfar compare finite networks trained on finite samples to ideal kernel dynamics in a broader setting. Here the setting is much smaller, but the perturbations are separated: sampling error and frozen-width error can be measured against known Fourier eigenvalues, mode by mode
+				            (\textcolor{muted}{\href{https://arxiv.org/abs/2206.02927}{Bowman \& Mont\'ufar, 2022}}).
 			      \end{itemize}
 
-			\item {\bfseries\textcolor{orange}{A baseline, not the whole story}}
+			      \pause
+			\item {\bfseries\textcolor{orange}{A boundary case for the lazy-training picture}}
 			      \begin{itemize}\tightlist\scriptsize
-				      \item The fixed kernel predicts the rates while it stays lazy, but is not a full account once features are learned; this work marks where that reduction stops (\textcolor{muted}{\href{https://arxiv.org/abs/1812.07956}{Chizat et al., 2019}}).
+				      \item Lazy-training theory explains why the fixed kernel can be a useful approximation, but also why it is not feature learning. The evolving-kernel experiments here are a small diagnostic of that boundary: once the kernel moves, the initial spectrum no longer tells the full story
+				            (\textcolor{muted}{\href{https://arxiv.org/abs/1812.07956}{Chizat et al., 2019}}).
 			      \end{itemize}
 
-			\item {\bfseries\textcolor{purple}{Connects to practice}}
+			      \pause
+			\item {\bfseries\textcolor{purple}{A clean model of a practical spectral problem}}
 			      \begin{itemize}\tightlist\scriptsize
-				      \item The same spectrum PINNs rescale to fix high-frequency failure (\textcolor{muted}{\href{https://arxiv.org/abs/2007.14527}{Wang et al., 2022}}), and that Fourier features and SIREN reshape for coordinate networks (\textcolor{muted}{\href{https://arxiv.org/abs/2006.10739}{Tancik et al., 2020}}; \textcolor{muted}{\href{https://arxiv.org/abs/2006.09661}{Sitzmann et al., 2020}}).
+				      \item In PINNs, different solution components can converge at very different speeds; one explanation is imbalance in the kernel eigenvalues, and some methods try to rescale those directions
+				            (\textcolor{muted}{\href{https://arxiv.org/abs/2007.14527}{Wang et al., 2022}}).
+				      \item In coordinate networks, such as position \(\mapsto\) colour, shape, or audio value, fine detail is often hard to learn. Fourier features add sinusoidal coordinate encodings, and SIREN uses sinusoidal activations; both change the effective spectrum so high-frequency detail is less suppressed
+				            (\textcolor{muted}{\href{https://arxiv.org/abs/2006.10739}{Tancik et al., 2020}};
+				            \textcolor{muted}{\href{https://arxiv.org/abs/2006.09661}{Sitzmann et al., 2020}}).
 			      \end{itemize}
 		\end{itemize}
 	}
 
-	\vspace{1.5mm}
+	\vspace{1mm}
+	{\color{line}\rule{\linewidth}{0.35pt}}
+
+	\vspace{1mm}
+	\centering
+	\pause
 	{\scriptsize\textcolor{muted}{Still, a result on the uniform circle is far from a guarantee about a deployed model.}}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}
-	\note<1->{ One-line takeaway, then questions. }
-	\vspace{8mm}
-	\centering
-	\begin{bluecard}[width=0.8\linewidth]
-		\centering
-		{\large\bfseries Fourier structure survives finite scale, but kernel evolution changes the story.}\par\vspace{2mm}
-		{\scriptsize In the lazy regimes it predicts the rates; once the kernel evolves we observe increased low-frequency spectral strength alongside lower training error, but the cause is still open.}
-	\end{bluecard}
+	\note<1->{
+		Thank you for listening. I am happy to take questions.
+	}
 
-	\vspace{6mm}
-	{\Large\bfseries Questions?}
+	\slidetitle{THANK YOU}{}
 
-	\vspace{4mm}
-	{\scriptsize\textcolor{muted}{[acknowledgements placeholder]}}
+	\vfill
+
+	\begin{center}
+		{\Huge\bfseries Questions?}
+
+		\vspace{8mm}
+
+		{\large\textcolor{muted}{Thank you for listening.}}
+	\end{center}
+
+	\vfill
 \end{frame}
 
 % ==================================================================
@@ -1975,6 +2220,26 @@
 			\end{orangecard}
 		\end{column}
 	\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{Coordinate-based networks: Fourier features close the spectral gap}
+	{\textcolor{muted}{Without Fourier feature preprocessing, coordinate-based MLPs cannot represent high-frequency detail; adding sinusoidal input encodings remedies this.}}
+
+	\vspace{1mm}
+	\centering
+	\includegraphics[width=0.90\linewidth,height=46mm,keepaspectratio]{coordinate-based-networks.jpeg}
+
+	\vspace{1mm}
+	{\scriptsize\textcolor{muted}{%
+		Fourier features improve the results of coordinate-based MLPs for a variety of high-frequency
+		low-dimensional regression tasks, both with direct (b,\,c) and indirect (d,\,e) supervision.
+		Passing coordinates directly into the network (top) produces blurry outputs, whereas
+		preprocessing the input with a Fourier feature mapping (bottom) enables the MLP to represent
+		higher-frequency details.
+		\quad\textcolor{muted}{\href{https://papers.neurips.cc/paper_files/paper/2020/file/55053683268957697aa39fba6f231c68-Paper.pdf}{Tancik et al., NeurIPS 2020}}%
+	}}
 \end{frame}
 
 % ------------------------------------------------------------------
