@@ -5,6 +5,7 @@
 % (kept in its own package so it can be reused/edited independently)
 % ------------------------------------------------------------------
 \usepackage{style}
+\usetikzlibrary{arrows.meta}
 
 \newcommand{\R}{\mathbb{R}}
 
@@ -63,8 +64,8 @@
 			{\large Shreyas Kalvankar}\par\vspace{1mm}
 			{\small MSc Computer Science, TU Delft}\par
 			\vspace{6mm}
-			{\scriptsize\textcolor{muted}{\textbf{Advisor:} Prof. Dr. D. M. J. Tax, Pattern Recognition \& Bioinformatics Group
-					\\ \textbf{Supervisor:} Prof. Dr. A. Heinlein, Numerical Analysis Group \\ \textbf{Committee Member:} Prof. Dr. A. Papapantoleon, Applied Probability Group
+			{\scriptsize\textcolor{muted}{\textbf{Advisor:} Dr. D. M. J. Tax, Pattern Recognition \& Bioinformatics Group
+					\\ \textbf{Supervisor:} Dr. A. Heinlein, Numerical Analysis Group \\ \textbf{Committee Member:} Prof. Dr. A. Papapantoleon, Applied Probability Group
 				}}\par
 		\end{column}
 		\begin{column}{0.32\textwidth}
@@ -468,10 +469,7 @@
 
 % ------------------------------------------------------------------
 % Keystone slide: "rate = eigenvalue", introduced geometrically before any
-% NTK machinery. Self-contained TikZ (no external assets). The Latex arrow
-% tips need the arrows.meta library, which the preamble does not load, so we
-% load it locally here to keep this frame self-contained.
-\usetikzlibrary{arrows.meta}
+% NTK machinery. Self-contained TikZ (no external assets).
 \begin{frame}
 	\note<1->{
 		One sentence on what training does: it makes the error small. It does this by
@@ -730,14 +728,22 @@
 	\begin{whitecard}
 		\centering
 		{\scriptsize\bfseries Strategy:}\ {\scriptsize build the clean reference, then relax each idealization separately.}\par\vspace{1.5mm}
-		\begin{tikzpicture}
-			\node (ref)   at (0,0)       {\pill{Reference model}{bluebg}{blue}};
-			\node (data)  at (3.6,0.45)  {\pill{Finite data}{yellowbg}{orange}};
-			\node (width) at (3.6,-0.45) {\pill{Finite width}{purplebg}{purple}};
-			\node (evol)  at (6.6,-0.45) {\pill{Evolving}{greenbg}{green}};
-			\draw[muted,-{Latex}] (ref.east) -- (data.west);
-			\draw[muted,-{Latex}] (ref.east) -- (width.west);
-			\draw[muted,-{Latex}] (width.east) -- (evol.west);
+		\begin{tikzpicture}[
+				pillnode/.style={
+						rounded corners=8pt,
+						inner xsep=6pt,
+						inner ysep=3pt,
+						font=\scriptsize\bfseries
+					}
+			]
+			\node[pillnode, fill=bluebg, text=blue] (ref) at (0,0) {Reference model};
+			\node[pillnode, fill=yellowbg, text=orange] (data) at (3.6,0.45) {Finite data};
+			\node[pillnode, fill=purplebg, text=purple] (width) at (3.6,-0.45) {Finite width};
+			\node[pillnode, fill=greenbg, text=green] (evol) at (6.6,-0.45) {Evolving};
+
+			\draw[muted,->] (ref.east) -- (data.west);
+			\draw[muted,->] (ref.east) -- (width.west);
+			\draw[muted,->] (width.east) -- (evol.west);
 		\end{tikzpicture}
 	\end{whitecard}
 \end{frame}
@@ -825,192 +831,188 @@
 
 
 % ------------------------------------------------------------------
+% Setup: the concrete model and domain. Keep this light because the NTK
+% dynamics were introduced on the previous slides.
 \begin{frame}
 	\note<1->{
 		\begin{itemize}
-			\item $S^1$: natural Fourier basis; track learning frequency by frequency.
-			\item One-hidden-layer ReLU, width $m$, NTK scaling; biases start at $0$ but train.
-			\item NTK = bridge from weight updates to function-space updates.
-			\item Residual $r_t=f_t-y$; gradient flow: $\partial_t r_t=-T_t^{(m)}r_t$.
-			\item Key object: decay of $\alpha_k(t)=\langle r_t,\phi_k\rangle$.
+			\item Instantiate the abstract operator story.
+			\item Circle gives Fourier modes: coarse to fine.
+			\item Model: one-hidden-layer ReLU network.
+			\item Define \(\phi_k\) as a Fourier mode and track coefficients \(\alpha_k(t)\).
+			\item Next: ideal limit makes these exact eigen-directions.
 		\end{itemize}
 	}
-	\slidetitle{SETUP}{Setting: regression on $S^1$}
-	\vspace{-1mm}
-	{\textcolor{muted}{$S^1$: functions on the circle have a natural Fourier decomposition.}}
+	\vspace{0em}
+	\slidetitle{SETUP}{The concrete model: regression on $S^1$}
+	{\textcolor{muted}{The unit circle gives a natural language for ``coarse'' and ``fine'': Fourier modes.}}
 
-	\vspace{1mm}
+	\vspace{0.2mm}
 	\begin{columns}[T,onlytextwidth]
-		\begin{column}{0.31\textwidth}
-			\pause
-			\begin{bluecard}[height=43mm]
-				{\textcolor{blue}{\bfseries Domain + target}}\par\vspace{2mm}
-				\[
-					x(\varphi)=(\cos\varphi,\sin\varphi)\in S^1
-				\]
-				\vspace{-1mm}
-				\[
-					y(\varphi)=\sum_k c_k\phi_k(\varphi)
-				\]
-				\vspace{-1mm}
-				{\scriptsize Fourier basis: $1$, $\cos(k\varphi)$, $\sin(k\varphi)$.}
-			\end{bluecard}
-		\end{column}
+		\begin{column}{0.52\textwidth}
+			{\scriptsize
+				\begin{itemize}
+					\setlength{\itemsep}{1.0mm}
+					\item Inputs are points on the unit circle with uniform distribution:
+					      \[
+						      x(\varphi)=(\cos\varphi,\sin\varphi)\in S^1.
+					      \]
 
-		\begin{column}{0.32\textwidth}
-			\pause
-			\begin{greencard}[height=43mm]
-				{\textcolor{green}{\bfseries Network}}\par\vspace{2mm}
-				{\scriptsize
-					\[
-						f_m(x;\theta)
-						=
-						\frac{1}{\sqrt m}
-						\sum_{i=1}^m
-						a_i\,\sigma\!\left(w_i^\top x+b_i\right)
-					\]
-				}
-				\vspace{-1.5mm}
-				\begin{itemize}\tightlist\scriptsize
-					\item one hidden layer of width $m$, ReLU $\sigma$
-					\item Gaussian init; biases start at $0$, all of $\theta$ trains
-					\item $1/\sqrt m$: NTK scaling
+					\item Fourier basis functions are written compactly as
+					      \[
+						      \phi_k \in \{1\}\cup\{\sin(k\varphi),\cos(k\varphi): k\ge1\}.
+					      \]
+
+					\item The target is a Fourier sum with amplitudes \(c_k\), the weights of each mode:
+					      \[
+						      f^\star(\varphi)=\sum_k c_k\phi_k(\varphi),
+						      \qquad
+						      r_t=f_t-f^\star=\sum_k\alpha_k(t)\phi_k.
+					      \]
+
+					\item The model is a one-hidden-layer ReLU network of width \(m\), initialized with
+					      \(w_i\sim\mathcal N(0,I_2)\), \(a_i\sim\mathcal N(0,1)\), and \(b_i=0\).
+
+					\item \textbf{Question:} what controls the decay of each \(\alpha_k(t)\)?
 				\end{itemize}
-			\end{greencard}
+			}
+
+			\vspace{1mm}
+			\centering
+			\begin{tikzpicture}[x=1cm,y=1cm,scale=0.78]
+				\draw[line] (0,0) -- (4.4,0);
+				\draw[line] (0,-0.55) -- (0,0.82);
+				\draw[tudcyan,very thick,domain=0:6.283,samples=100,smooth,variable=\t]
+				plot ({4.4*\t/6.283},
+				{0.24*(1+0.9*cos(deg(\t))+0.7*cos(deg(3*\t))-0.5*sin(deg(5*\t))-0.4*sin(deg(6*\t))-0.5)});
+				\node[font=\tiny,text=muted,anchor=west] at (4.46,0) {$\varphi$};
+				\node[font=\tiny,text=muted,anchor=south] at (2.2,0.82) {target \(f^\star\)};
+			\end{tikzpicture}
 		\end{column}
 
-		\begin{column}{0.31\textwidth}
-			\pause
-			\begin{orangecard}[height=43mm]
-				{\textcolor{orange}{\bfseries Training dynamics}}\par\vspace{2mm}
-				\[
-					\partial_t r_t=-T_t^{(m)}r_t
-				\]
-				\vspace{-2mm}
-				\[
-					r_t=f_t-y
-				\]
-				\vspace{-1mm}
-				{\centering \scriptsize $T_t^{(m)}$ is the tangent operator.}
-			\end{orangecard}
-		\end{column}
-	\end{columns}
-
-	\vspace{2.4mm}
-	\pause
-	\begin{whitecard}
-		\centering
-		{\bfseries Key question:} what governs the decay of each mode $\alpha_k(t)=\langle r_t,\phi_k\rangle$?
-	\end{whitecard}
-\end{frame}
-
-% ------------------------------------------------------------------
-\begin{frame}
-	\note<1->{
-		\begin{itemize}
-			\item Start with the cleanest reference model: infinite width and continuum data.
-			\item Oversimplifying slightly: the NTK measures how similarly two inputs respond to parameter changes.
-			      item If two inputs have similar parameter gradients, an update for one also affects the other.
-			      At finite width, the NTK is random because it depends on initialization.
-			      But it is an average over neurons, so as $m\to\infty$ it converges to a deterministic limit.
-			      The parameter movement becomes small enough that the limiting kernel stays fixed during training.
-			      This gives a fixed operator $T_\infty$ for the residual dynamics.
-			\item On $S^1$ with uniform measure, the limiting kernel only depends on angular difference:
-			\item Main point: eigenvalue = learning rate.
-			\item Explicit eigenvalues show $\lambda_k\sim k^{-2}$.
-			\item Low frequencies decay faster; high frequencies are delayed.
-			\item This is the exact reference model for the rest of the thesis.
-		\end{itemize}
-	}
-	\slidetitle{REFERENCE MODEL}{The ideal picture: infinite-width MLP on $S^1$}
-	\pause
-	{\textcolor{muted}{For uniform data on the circle, the NTK is a fixed convolution operator, so the Fourier modes are its eigenfunctions.}}
-
-	\vspace{1mm}
-	\begin{columns}[T,onlytextwidth]
-		\pause
-		\begin{column}{0.31\textwidth}
-			\begin{bluecard}[height=21mm]
-				\[
-					\partial_t r_t=-T_\infty r_t
-				\]
-				\centering{\scriptsize fixed NTK integral operator}
-			\end{bluecard}
-		\end{column}
-		\pause
-		\begin{column}{0.31\textwidth}
-			\begin{greencard}[height=21mm]
-				\[
-					T_\infty\phi_k=\lambda_k\phi_k
-				\]
-				\centering{\scriptsize Fourier modes are eigenfunctions}
-			\end{greencard}
-		\end{column}
-		\pause
-		\begin{column}{0.31\textwidth}
-			\begin{orangecard}[height=21mm]
-				\[
-					\alpha_k(t)=e^{-\lambda_k t}\alpha_k(0)
-				\]
-				\centering{\scriptsize rate = eigenvalue}
-			\end{orangecard}
-		\end{column}
-	\end{columns}
-
-	\vspace{1mm}
-	\begin{columns}[T,onlytextwidth]
-		\pause
-		\begin{column}{0.49\textwidth}
-			\begin{whitecard}[height=34mm]
-				{\scriptsize\bfseries Explicit eigenvalues}\hfill{\tiny\textcolor{muted}{Thm.~5.2}}\par\vspace{0.5mm}
-				{\scriptsize
-					\[
-						\lambda_k =
-						\begin{cases}
-							\frac14+\frac{3}{\pi^2},
-							 & k=0,                 \\[0.4mm]
-							\frac14+\frac{1}{\pi^2},
-							 & k=1,                 \\[0.4mm]
-							\frac{k^2+3}{\pi^2(k^2-1)^2},
-							 & k\ge 2 \text{ even}, \\[0.4mm]
-							\frac{1}{\pi^2 k^2},
-							 & k\ge 3 \text{ odd}.
-						\end{cases}
-					\]
-				}
-			\end{whitecard}
-		\end{column}
-
-		\pause
-		\begin{column}{0.46\textwidth}
-			\begin{bluecard}[height=22mm]
-				{\scriptsize\bfseries Interpretation}\par\vspace{1mm}
-				\begin{itemize}\tightlist\scriptsize
-					\item Small $k$ have larger eigenvalues, so low frequencies decay faster.
-					\item For large $k$, $\lambda_k\sim k^{-2}$, so high frequencies are delayed.
-				\end{itemize}
-			\end{bluecard}
+		\begin{column}{0.44\textwidth}
+			\centering
+			\begin{tikzpicture}[scale=0.78]
+				\draw[line] (-1.2,0) -- (1.2,0);
+				\draw[line] (0,-1.2) -- (0,1.2);
+				\node[font=\tiny,text=muted,anchor=west] at (1.02,-0.12) {$x_1$};
+				\node[font=\tiny,text=muted,anchor=south west] at (0.10,0.98) {$x_2$};
+				\draw[line] (0,0) circle (1.15);
+				\draw[tudcyan,very thick] (0,0) -- ({1.15*cos(35)},{1.15*sin(35)});
+				\fill[tudcyan] ({1.15*cos(35)},{1.15*sin(35)}) circle (1.8pt);
+				\node[font=\tiny,text=muted] at (1.45,0.75) {$x(\varphi)$};
+				\node[font=\tiny,text=muted] at (0,-1.45) {$S^1$};
+				\node[font=\tiny,text=muted] at (0.55,0.18) {$\varphi$};
+			\end{tikzpicture}
 
 			\vspace{2mm}
+			\input{mlp_diagram.tex}
+		\end{column}
+	\end{columns}
+\end{frame}
 
-			\pause
+% ------------------------------------------------------------------
+% Reference model: the ideal infinite-width / continuum-data operator.
+% Message: convolution on the circle means Fourier modes diagonalize the
+% dynamics; eigenvalues give learning rates.
+\begin{frame}
+	\note<1->{
+		\begin{itemize}
+			\item Infinite width and continuum data.
+			\item Uniform circle makes \(T\) a convolution operator.
+			\item Fourier modes diagonalize convolution.
+			\item Each mode decays independently at rate \(\lambda_k\).
+			\item Formula shows \(\lambda_k\sim k^{-2}\): high frequencies are slow.
+		\end{itemize}
+	}
+	\vspace{0.2em}
+	\slidetitle{REFERENCE MODEL}{The ideal picture: a convolution operator on $S^1$}
+	{\textcolor{muted}{At infinite width and with continuum data, the NTK becomes fixed and rotation-invariant.}}
+
+	{\raggedleft\tiny\textcolor{muted}{recall: fixed \(T\) gives \(\dot\alpha_k=-\lambda_k\alpha_k\)}\par}
+
+	\vspace{0.5mm}
+	\begin{whitecard}
+		{\scriptsize
+			With uniform measure \(\mu(d\psi)=d\psi/(2\pi)\), the fixed operator acts by
+		}\par\vspace{-0.5mm}
+		{\scriptsize
+			\[
+				(T r)(\varphi)=
+				\int_{0}^{2\pi}\Theta(\varphi-\psi)\,r(\psi)\,\frac{d\psi}{2\pi}.
+			\]
+		}
+		\vspace{-1mm}
+		{\scriptsize
+			Because this is a convolution on the circle, the Fourier modes are eigenfunctions:
+		}\par
+		{\scriptsize
+		\[
+			T\phi_k = \lambda_k \phi_k,
+			\qquad
+			\alpha_k(t)=e^{-\lambda_k t}\alpha_k(0).
+		\]
+		}
+	\end{whitecard}
+
+	\vspace{0.5mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.53\textwidth}
+			\begin{whitecard}[height=35mm]
+				{\scriptsize\bfseries Explicit eigenvalues}\hfill{\tiny\textcolor{muted}{Thm.~5.2}}\par\vspace{0.5mm}
+				{\scriptsize
+					\begingroup
+					\renewcommand{\arraystretch}{1.5}
+					\[
+						\lambda_k =
+						\left\{
+						\begin{array}{@{}ll@{}}
+							\frac14+\frac{3}{\pi^2},
+							 & k=0,                 \\[2mm]
+							\frac14+\frac{1}{\pi^2},
+							 & k=1,                 \\[2mm]
+							\frac{k^2+3}{\pi^2(k^2-1)^2},
+							 & k\ge 2 \text{ even}, \\[2mm]
+							\frac{1}{\pi^2 k^2},
+							 & k\ge 3 \text{ odd}.
+						\end{array}
+						\right.
+					\]
+					\endgroup
+				}
+			\end{whitecard}
+		\end{column}
+
+		\begin{column}{0.43\textwidth}
+			\begin{bluecard}[height=17mm]
+				{\scriptsize\bfseries Interpretation}\par\vspace{0.5mm}
+				\begin{itemize}\tightlist\scriptsize
+					\item Low frequencies $\implies $ Small \(k\): larger \(\lambda_k\), faster decay.
+					\item High frequencies $\implies$ Large \(k\): \(\lambda_k\sim k^{-2}\), slower decay.
+				\end{itemize}
+			\end{bluecard}
+
+			\vspace{1mm}
 			\begin{whitecard}[height=11mm]
 				\centering
-				{\scriptsize\bfseries Reference model:}
-				{\scriptsize exact Fourier dynamics at infinite width and in the continuum.}
+				{\scriptsize\bfseries This exactly predicts the demo:}
+				{\scriptsize coarse structure first, fine detail later.}
 			\end{whitecard}
 		\end{column}
 	\end{columns}
 
-	\vspace{0mm}
-	{\tiny\textcolor{muted}{Jacot et al.\ (2018)}}
+	% \vspace{-0.5mm}
+	{\tiny\textcolor{muted}{
+		\href{https://arxiv.org/abs/1806.07572}{Jacot et al., 2018};
+		\href{https://arxiv.org/abs/1912.01198}{Cao et al., 2019}
+	}}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}
 	\note<1->{
 		\begin{itemize}
-			\item The ideal model is useful only if we understand its perturbations.
+			\item The ideal model is useful only if we understand what happens when its assumptions are relaxed.
 			\item Perturbation 1: finite samples.
 			\item Replace continuum measure by random sample points:
 			      \[
@@ -1019,16 +1021,14 @@
 			\item This breaks exact Fourier orthogonality and exact diagonalization.
 			\item Question: do Fourier modes still behave approximately like eigenvectors of the sampled operator?
 			\item Perturbation 2: frozen finite width.
-			\item Replace deterministic $T_\infty$ by random finite-width tangent operator $T_m^{(0)}$.
+			\item Replace deterministic $T$ by random finite-width tangent operator $T_0^{(m)}$.
 			\item Question: are Fourier eigenspaces and learning rates preserved?
 			\item Main theoretical part: control both finite data and frozen finite width.
 		\end{itemize}
 	}
 	\slidetitle{THESIS QUESTION}{Does this spectral picture survive outside the ideal limit?}
 
-	\visible<2->{
-		{\textcolor{muted}{The ideal model is useful only if we understand its perturbations.}}
-	}
+	{\textcolor{muted}{The ideal model is useful only if we understand what happens when its assumptions are relaxed.}}
 
 	\vspace{3mm}
 	\begin{columns}[T,onlytextwidth]
@@ -1075,10 +1075,10 @@
 			\visible<4->{
 				\begin{purplecard}[height=53mm]
 					{\textcolor{purple}{\scriptsize\bfseries Perturbation II}}\par\vspace{1mm}
-					{\bfseries Frozen finite width}\par\vspace{3mm}
+					{\bfseries Finite width}\par\vspace{3mm}
 
 					\[
-						T_\infty
+						T
 						\quad\rightsquigarrow\quad
 						T_0^{(m)}
 					\]
@@ -1097,63 +1097,95 @@
 
 	\vspace{1.5mm}
 	\visible<5->{
-	{\centering\scriptsize\textcolor{muted}{Both perturbations break exact diagonalization; the goal is to quantify the finite-scale error.}\ {\tiny\textcolor{muted}{cf.\ Bowman \& Mont\'ufar (2022)}}\par}
+		{\centering\scriptsize\textcolor{muted}{Both perturbations break exact diagonalization; the goal is to quantify the finite-scale error (\textcolor{muted}{\ Bowman \& Mont\'ufar, 2022})}\par}
 	}
 \end{frame}
 
 % ------------------------------------------------------------------
 % Main results, message-first: on a fixed low-frequency Fourier window both
-% finite-scale errors shrink like 1/sqrt(scale). The precise matrix
-% statements (A, G, H, B_m^{(K)}, norms, constants) moved to the backup
-% frame "Finite-scale bounds: precise statements".
+% finite-scale operators remain close to the ideal diagonal Fourier operator.
+% Extra Gram/action/projection statements live in the backup frame.
 \begin{frame}
 	\note<1->{
 		\begin{itemize}
-			\item Fix the window: Fourier modes up to frequency $K$, $d=2K+1$ of them.
-			\item Finite data: sampled Fourier geometry $\approx$ ideal; error $O(n^{-1/2})$.
-			\item Frozen width: operator correct on average; error $O(m^{-1/2})$.
-			\item Both high probability, explicit constants; precise statements in backup.
+			\item Fix one low-frequency Fourier subspace.
+			\item On that subspace, the ideal operator is diagonal.
+			\item Finite samples have an exponential tail in \(n\).
+			\item Frozen finite width is unbiased and has an exponential tail in \(m\).
+			\item Detailed Gram and action bounds are in backup.
 		\end{itemize}
 	}
 	\slidetitle{NON-ASYMPTOTIC CONTROL}{Main results: the spectral picture survives finite scale}
-	{\textcolor{muted}{Fix a low-frequency window: the Fourier modes up to frequency $K$, $d=2K+1$ of them. Compare each finite-scale object to its ideal counterpart there.}}
+	% {\textcolor{muted}{On one fixed low-frequency subspace, finite scale turns the ideal diagonal operator into a controlled perturbation.}}
 
-	\vspace{2mm}
+	\vspace{0.5mm}
+	\begin{whitecard}
+		{\centering\scriptsize
+			\(\mathcal H_K=\operatorname{span}\{1,\cos\varphi,\sin\varphi,\ldots,\cos(K\varphi),\sin(K\varphi)\}\),
+			\quad \(d=2K+1\).\par\vspace{1mm}
+			\(\Lambda_K=\operatorname{diag}(\lambda_0,\lambda_1,\lambda_1,\ldots,\lambda_K,\lambda_K)\),
+			and \(T_K\) denotes the relevant finite-scale operator on \(\mathcal H_K\).\par}
+	\end{whitecard}
+
+	\vspace{1mm}
 	\begin{columns}[T,onlytextwidth]
 		\begin{column}{0.49\textwidth}
 			\begin{yellowcard}[height=36mm]
-				{\textcolor{orange}{\bfseries Finite samples}\hfill{\tiny\textcolor{muted}{Thm.~5.5}}}\par\vspace{1.5mm}
-				{\scriptsize Train on $n$ sampled points instead of the whole circle. On the window, the sampled Fourier geometry (orthogonality, eigenvalues, kernel action) deviates from the ideal one by at most}\par\vspace{-1.5mm}
+				{\textcolor{orange}{\bfseries Finite samples}\hfill{\tiny\textcolor{muted}{Thm.~5.5}}}\par\vspace{1mm}
+				{\scriptsize Let \(T_K\) be the sampled operator on \(\mathcal H_K\), using \(n\) uniform samples from \([0,2\pi)\). For every \(\varepsilon>0\),}\par\vspace{-1.5mm}
+				{\scriptsize
+					\[
+						\mathbb P\!\left(
+						\|T_K-\Lambda_K\|_{\max}\ge\varepsilon
+						\right)
+						\le
+						2d^2\exp\!\left(-C n\varepsilon^2\right).
+					\]
+				}
+				\vspace{-3mm}\par
+				{\scriptsize Equivalently, with probability at least \(1-\delta\),}\par\vspace{-1.5mm}
+				{\scriptsize
 				\[
-					C\,\sqrt{\frac{\log(nd/\delta)}{n}}
+					\|T_K-\Lambda_K\|_{\max}
+					=
+					O\!\left(\sqrt{\frac{\log(d/\delta)}{n}}\right).
 				\]
-				\vspace{-4mm}\par
-				{\tiny\textcolor{muted}{with probability $1-\delta$, for explicit constants $C$.}}
+				}
 			\end{yellowcard}
 		\end{column}
 		\pause
 		\begin{column}{0.49\textwidth}
 			\begin{purplecard}[height=36mm]
-				{\textcolor{purple}{\bfseries Frozen finite width}\hfill{\tiny\textcolor{muted}{Thm.~5.6}}}\par\vspace{1.5mm}
-				{\scriptsize Replace the ideal operator by a width-$m$ network's tangent operator at initialization. On the window it equals the ideal one \emph{on average}, and deviates by at most}\par\vspace{-1.5mm}
+				{\textcolor{purple}{\bfseries Finite width}\hfill{\tiny\textcolor{muted}{Thm.~5.6}}}\par\vspace{1mm}
+				{\scriptsize Let \(T_K^{(m)}\) be the width-\(m\) tangent operator on \(\mathcal H_K\). Then \(\mathbb E[T_K^{(m)}]=\Lambda_K\), and for every \(\varepsilon>0\),}\par\vspace{-1.5mm}
+				{\scriptsize
 				\[
-					C\,\sqrt{\frac{\log(d/\delta)}{m}}
+					\mathbb P\!\left(
+					\|T_K^{(m)}-\Lambda_K\|_{\max}\ge\varepsilon
+					\right)
+					\le
+					2d^2\exp\!\left(-C m\varepsilon^2\right).
 				\]
-				\vspace{-4mm}\par
-				{\tiny\textcolor{muted}{with probability $1-\delta$; on average: $\mathbb{E}[\text{finite-width block}]=\text{ideal block}$.}}
+				}
+				\vspace{-3mm}\par
+				{\scriptsize Equivalently, with probability at least \(1-\delta\),}\par\vspace{-1.5mm}
+				{\scriptsize
+				\[
+					\|T_K^{(m)}-\Lambda_K\|_{\max}
+					=
+					O\!\left(\sqrt{\frac{\log(d/\delta)}{m}}\right).
+				\]
+				}
 			\end{purplecard}
 		\end{column}
 	\end{columns}
 
-	\vspace{2mm}
+	\vspace{0.5mm}
 	\pause
 	\begin{whitecard}
 		\centering
-		{\scriptsize\bfseries Takeaway:}\ {\scriptsize finite-sample errors shrink like $O(n^{-1/2})$, frozen finite-width errors like $O(m^{-1/2})$, both on the same fixed low-frequency subspace: the spectral picture degrades gracefully.}
+		{\scriptsize\bfseries What this gives us:}\ {\scriptsize a way to predict how the learning dynamics change with \(n\) and \(m\). In particular, the finite-sample block tells us how to precondition the operator and reduce the frequency-wise gap in learning rates.}
 	\end{whitecard}
-
-	\vspace{1mm}
-	{\tiny\textcolor{muted}{Rates up to log factors; precise statements and constants in backup.\quad Finite scale vs.\ idealized kernel dynamics: Bowman \& Mont\'ufar (2022).}}
 \end{frame}
 
 % ------------------------------------------------------------------
@@ -1167,50 +1199,33 @@
 				      T_0^{(m)} \rightsquigarrow T_t^{(m)}.
 			      \]
 			\item The question is whether that movement actually matters.
-			\item At $m=128$ and $m=256$, it clearly does: the evolving kernel reaches much lower loss than the frozen one.
+			\item At $m=128$ and $m=256$, it clearly does: the evolving kernel reaches lower training error than the frozen one.
 			\item At $m=1024$, the reversal appears: the frozen kernel reaches the lower final loss.
 			\item So kernel evolution seems to be a genuine small-width effect.
 			\item This is the main tension: finite width can improve learning by changing the operator, but it also breaks the clean spectral reference model.
 		\end{itemize}
 	}
-	\slidetitle{EVOLVING KERNEL}{A finite-width effect not explained by the frozen NTK}
-	{\textcolor{muted}{After controlling the frozen operator, the next question is whether training changes the operator enough to matter.}}
+	\slidetitle{EVOLVING KERNEL}{A finite-width effect not explained by the NTK at initialization}
+	{\textcolor{muted}{After controlling the operator at initialization, the next question is whether training changes the operator enough to matter.}}
 
 	\pause
 	\begin{columns}[T,onlytextwidth]
-		\begin{column}{0.32\textwidth}
+		\begin{column}{0.49\textwidth}
 			\begin{whitecard}
 				\centering
-				\includegraphics[width=\linewidth,height=24mm,keepaspectratio]{train_ls_frozen_vs_evolving_w128.png}\par
-				{\tiny $m=128$: evolving reaches much lower loss}
+				\includegraphics[width=\linewidth]{train_ls_frozen_vs_evolving_w128.png}\par
+				{\tiny $m=128$: evolving reaches lower training error}
 			\end{whitecard}
 		\end{column}
 		\pause
-		\begin{column}{0.32\textwidth}
+		\begin{column}{0.49\textwidth}
 			\begin{whitecard}
 				\centering
-				\includegraphics[width=\linewidth,height=24mm,keepaspectratio]{train_ls_frozen_vs_evolving_w256.png}\par
-				{\tiny $m=256$: evolving still wins}
-			\end{whitecard}
-		\end{column}
-		\pause
-		\begin{column}{0.32\textwidth}
-			\begin{whitecard}
-				\centering
-				\includegraphics[width=\linewidth,height=24mm,keepaspectratio]{train_ls_frozen_vs_evolving_w1024.png}\par
-				{\tiny $m=1024$: frozen reaches lower final loss}
+				\includegraphics[width=\linewidth]{train_ls_frozen_vs_evolving_w1024.png}\par
+				{\tiny $m=1024$: frozen reaches lower final training error}
 			\end{whitecard}
 		\end{column}
 	\end{columns}
-
-	\vspace{1.5mm}
-	\begin{bluecard}
-		\begin{itemize}\tightlist\scriptsize
-			\item Small width: moving the kernel helps, so frozen NTK misses something.
-			\item Large width: frozen wins again, matching the lazy-training picture.
-			\item The reversal forces the question: what changed in the moving kernel?
-		\end{itemize}
-	\end{bluecard}
 \end{frame}
 
 % ------------------------------------------------------------------
@@ -1225,48 +1240,46 @@
 		the small-width improvement is not coming from better Fourier alignment.
 	}
 	\slidetitle{EVOLVING KERNEL}{First check: does alignment improve?}
-	{\textcolor{muted}{If evolution helped by preserving Fourier geometry, the alignment curves should rise. They do not.}}
+	{\textcolor{muted}{If evolution helped by preserving Fourier geometry, the alignment curves should rise above their initial alignment. They do not.}}
 
 	\vspace{1mm}
 	\begin{columns}[T,onlytextwidth]
-		\begin{column}{0.49\textwidth}
-			\begin{whitecard}
+		\begin{column}{0.495\textwidth}
+			\begin{whitecard}[left=0.7mm,right=0.7mm,top=0.7mm,bottom=0.9mm]
 				\centering
-				\includegraphics[width=\linewidth,height=27mm,keepaspectratio]{rms_cos_alignment_by_freq_w128.png}\par
+				\includegraphics[width=\linewidth,height=39mm,keepaspectratio]{rms_cos_alignment_by_freq_w128.png}\par
 				{\tiny $m=128$: higher-frequency alignment drops sharply.}
 			\end{whitecard}
 		\end{column}
-		\begin{column}{0.49\textwidth}
-			\begin{whitecard}
+		\begin{column}{0.495\textwidth}
+			\begin{whitecard}[left=0.7mm,right=0.7mm,top=0.7mm,bottom=0.9mm]
 				\centering
-				\includegraphics[width=\linewidth,height=27mm,keepaspectratio]{rms_cos_alignment_by_freq_w1024.png}\par
-				{\tiny $m=1024$: frozen alignment starts stronger, but evolution still worsens high frequencies.}
+				\includegraphics[width=\linewidth,height=39mm,keepaspectratio]{rms_cos_alignment_by_freq_w1024.png}\par
+				{\tiny $m=1024$: evolution still worsens high frequencies.}
 			\end{whitecard}
 		\end{column}
 	\end{columns}
 
-	\vspace{2mm}
-	\begin{bluecard}
+	\vspace{1mm}
+	\begin{bluecard}[height=8mm,valign=center]
 		\centering
-		{\bfseries Alignment is not the gain. The moving kernel does not become more Fourier-diagonal.}
+		{\scriptsize\bfseries Alignment does not explain why the evolving kernel reaches lower training error at lower widths.}
 	\end{bluecard}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}
 	\note<1->{
-		The second explanation is strength. The operator can become stronger on
-		some frequency blocks even if its eigenspaces are not better aligned. This
-		is what the spectral-strength plots show. At width 128, the strength in the
-		constant block and the first frequency rises sharply, with a smaller gain
-		for k equals 2. At width 1024, the same direction of change is still visible
-		but much weaker. This tracks the loss comparison: the low-frequency boost is
-		large where evolving wins and small where frozen wins. This is still a
-		correlation with lower loss, not a causal proof, and the mechanism behind
-		the low-frequency boost remains open.
+		The second explanation is strength. Even if the eigenspaces do not become
+		better aligned with the Fourier modes, the operator can still become stronger
+		on some low-frequency blocks. This is what the spectral-strength plots suggest.
+		At width 128, the constant block and first frequency increase sharply, with a
+		smaller increase for k equals 2. At width 1024, the same pattern is visible
+		but much weaker. This does not prove a mechanism, but it suggests that the
+		low-frequency preference is still involved in the evolving-kernel behaviour.
 	}
 	\slidetitle{EVOLVING KERNEL}{What changes: low-frequency strength rises}
-	{\textcolor{muted}{The benefit tracks operator strength on the low-frequency blocks, not better alignment.}}
+	{\textcolor{muted}{The moving kernel becomes stronger on some low-frequency blocks, even without better Fourier alignment.}}
 
 	\vspace{1mm}
 	\begin{columns}[T,onlytextwidth]
@@ -1274,14 +1287,14 @@
 			\begin{whitecard}
 				\centering
 				\includegraphics[width=\linewidth,height=30mm,keepaspectratio]{spectral_strength_by_freq_w128.png}\par
-				{\tiny $m=128$: large boost in $k=0$ and $k=1$.}
+				{\tiny $m=128$: large increase in $k=0$ and $k=1$.}
 			\end{whitecard}
 		\end{column}
 		\begin{column}{0.49\textwidth}
 			\begin{whitecard}
 				\centering
 				\includegraphics[width=\linewidth,height=30mm,keepaspectratio]{spectral_strength_by_freq_w1024.png}\par
-				{\tiny $m=1024$: same pattern, much weaker.}
+				{\tiny $m=1024$: same direction of change, but much weaker.}
 			\end{whitecard}
 		\end{column}
 	\end{columns}
@@ -1289,14 +1302,14 @@
 	\vspace{1mm}
 	\begin{bluecard}
 		\centering
-		{\bfseries Spectral bias is reinforced. What breaks is the frozen description, not the low-to-high ordering.}
+		{\bfseries The low-frequency preference is still visible, but the mechanism is not fully explained.}
 	\end{bluecard}
 
 	\vspace{0.7mm}
 	\begin{whitecard}[height=8mm,valign=center]
 		\centering
-		{\tiny Correlation with lower loss, not established cause.\quad
-			Small-width effect: at large width the frozen picture wins ($m=1024$), as lazy training predicts.}
+		{\tiny This is a diagnostic correlation, not a causal explanation.\quad
+			The effect is strongest at small width and much weaker at $m=1024$.}
 	\end{whitecard}
 \end{frame}
 
@@ -1306,55 +1319,116 @@
 	\slidetitle{CONCLUSION}{What we can now say}
 	{\textcolor{muted}{The three questions from the start, answered.}}
 
-	\vspace{2mm}
-	\begin{columns}[T,onlytextwidth]
-		\begin{column}{0.32\textwidth}
-			\begin{bluecard}[height=40mm]
-				\questionnum{blue}{1}\ {\bfseries Rates}\par\vspace{1.5mm}
-				{\scriptsize Mode-wise rates are eigenvalues. Low frequencies have larger eigenvalues and are learned first; $\lambda_k\sim k^{-2}$.}
-			\end{bluecard}
-		\end{column}
-		\begin{column}{0.32\textwidth}
-			\begin{greencard}[height=40mm]
-				\questionnum{green}{2}\ {\bfseries Finite data}\par\vspace{1.5mm}
-				{\scriptsize Finite samples and frozen finite width preserve the picture, with explicit $O(n^{-1/2})$ and $O(m^{-1/2})$ control.}
-			\end{greencard}
-		\end{column}
-		\begin{column}{0.32\textwidth}
-			\begin{orangecard}[height=40mm]
-				\questionnum{orange}{3}\ {\bfseries Finite width}\par\vspace{1.5mm}
-				{\scriptsize Training evolves the kernel and reinforces the low-frequency bias. The frozen description holds where the kernel stays lazy, at large width.}
-			\end{orangecard}
-		\end{column}
-	\end{columns}
+	\vspace{3mm}
+	{\small
+		\begin{itemize}
+			\setlength{\itemsep}{4mm}
+			\item[\questionnum{blue}{1}] {\bfseries What sets the learning speed of each frequency?}
+			      \begin{itemize}\tightlist\scriptsize
+				      \item Mode-wise rates are eigenvalues of the NTK; $\lambda_k\sim k^{-2}$, so low frequencies are learned first.
+			      \end{itemize}
+
+			\item[\questionnum{green}{2}] {\bfseries Does this survive with only $n$ sampled points?}\enspace{\scriptsize\textcolor{green}{\emph{RQ1}}}
+			      \begin{itemize}\tightlist\scriptsize
+				      \item Yes. Finite samples preserve the picture with explicit $O(n^{-1/2})$ control.
+			      \end{itemize}
+
+			\item[\questionnum{orange}{3}] {\bfseries Does it survive with finitely many neurons, at init and during training?}\enspace{\scriptsize\textcolor{orange}{\emph{RQ2}}}
+			      \begin{itemize}\tightlist\scriptsize
+				      \item At initialisation, yes, with explicit $O(m^{-1/2})$ control. Once the kernel evolves the clean spectral picture no longer fully describes training: we observe increased low-frequency spectral strength alongside lower training error, but the cause is still open.
+			      \end{itemize}
+		\end{itemize}
+	}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}
-	\note<1->{ What the circle buys us, what carries over, and the open problem. }
-	\slidetitle{SCOPE}{What is special about the circle, and what is not}
+	\note<1->{
+		The exact Fourier picture rests on four assumptions, and each one tells us
+		what changes when it is relaxed. The uniform measure is what makes the kernel
+		a convolution, so the Fourier modes are its eigenfunctions; a non-uniform
+		density or Gaussian inputs change the basis to Hermite polynomials, but
+		eigenvalue size still sets the rates, and the proofs would need redoing for
+		unbounded support. ReLU fixes the polynomial decay of the spectrum; a smooth
+		activation keeps the same eigenbasis but decays faster. Freezing the kernel
+		is what gives the concentration bounds; letting it evolve is the regime we
+		only study empirically. And the bounds hold on a fixed low-frequency block,
+		not uniformly over all modes. The point is that the framework is robust in
+		direction, but the guarantees are local to these assumptions.
+	}
+	\slidetitle{DISCUSSION \& LIMITATIONS}{What we assumed, and what changes if we relax it}
 
-	\vspace{3mm}
-	\begin{columns}[T,onlytextwidth]
-		\begin{column}{0.32\textwidth}
-			\begin{greencard}[height=42mm]
-				{\textcolor{green}{\bfseries Special}}\par\vspace{1.5mm}
-				{\scriptsize Uniform measure on $S^1$ makes the NTK a convolution, so its eigenfunctions are exactly the Fourier modes.}
-			\end{greencard}
-		\end{column}
-		\begin{column}{0.32\textwidth}
-			\begin{bluecard}[height=42mm]
-				{\textcolor{blue}{\bfseries Carries over}}\par\vspace{1.5mm}
-				{\scriptsize Off this setting (non-uniform density, or Gaussian inputs giving Hermite polynomials) the basis changes, but eigenvalue size still sets the rates.}
-			\end{bluecard}
-		\end{column}
-		\begin{column}{0.32\textwidth}
-			\begin{orangecard}[height=42mm]
-				{\textcolor{orange}{\bfseries Open problem}}\par\vspace{1.5mm}
-				{\scriptsize A non-asymptotic theory for the evolving kernel: control of $T_t^{(m)}-T_0^{(m)}$ over training time.}
-			\end{orangecard}
-		\end{column}
-	\end{columns}
+	\vspace{2mm}
+	{\renewcommand{\arraystretch}{1.35}
+		\begin{tabular}{@{}p{0.18\linewidth}p{0.33\linewidth}p{0.43\linewidth}@{}}
+			\toprule
+			{\scriptsize\bfseries Assumption} & {\scriptsize\bfseries What it gives us}                                                                                                                                                                                                                   & {\scriptsize\bfseries If we relax it} \\
+			\midrule
+			{\scriptsize\textcolor{blue}{\bfseries Uniform measure on $S^1$}}
+			                                  & {\scriptsize The NTK is a convolution, so the Fourier modes are exactly its eigenfunctions.}
+			                                  & {\scriptsize A non-uniform density or Gaussian inputs change the basis (e.g.\ Hermite polynomials), but eigenvalue size still sets the rates. The bounded-kernel proofs assume a compact domain, so they need rederiving for unbounded support.}                                                  \\
+			{\scriptsize\textcolor{green}{\bfseries ReLU activation}}
+			                                  & {\scriptsize A closed-form spectrum with polynomial decay, $\lambda_k = O(k^{-2})$.}
+			                                  & {\scriptsize A smooth activation keeps the Fourier eigenbasis but decays faster, sharpening the bias. The fixed-kernel analysis carries over with the spectrum recomputed.}                                                                                                                       \\
+			{\scriptsize\textcolor{orange}{\bfseries Frozen (lazy) kernel}}
+			                                  & {\scriptsize Finite width is a controlled perturbation, concentrating at $O(m^{-1/2})$.}
+			                                  & {\scriptsize When the kernel evolves the initial spectrum no longer governs the dynamics; at small width we observe increased low-frequency strength alongside lower training error, with the cause still open. This regime is only studied empirically.}                                         \\
+			{\scriptsize\textcolor{purple}{\bfseries Fixed block $\mathcal H_K$}}
+			                                  & {\scriptsize A controlled entrywise error on a chosen low-frequency block.}
+			                                  & {\scriptsize Over all modes, or with $K$ growing in $n,m$, the entrywise bounds are not sharp where eigenvalues are small and close together; operator-norm tools would tighten them.}                                                                                                            \\
+			\bottomrule
+		\end{tabular}
+	}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}
+	\note<1->{
+		Where this sits. The NTK turns a non-convex training problem into a linear
+		one that can be characterised exactly, and our networks live between two
+		regimes: lazy training, where the tangent kernel barely moves, and feature
+		learning, where it moves substantially. Four points on where the work sits.
+		First, it makes the NTK spectral-bias mechanism, usually argued
+		asymptotically or shown empirically, explicit on the circle, where every rate
+		is a computable eigenvalue. Second, the infinite-width NTK is often treated as
+		a purely asymptotic object, and we instead give non-asymptotic bounds on a
+		low-frequency block. Third, the fixed kernel is a useful baseline while it
+		stays lazy, but it is not a full account once features are learned, and this
+		work marks where that reduction stops. Fourth, the mechanism is the one
+		practitioners already modify: PINNs rescale this spectrum, and Fourier
+		features and SIREN reshape it. A result on the uniform circle is still far
+		from a guarantee about a deployed model.
+	}
+	\slidetitle{DISCUSSION \& LIMITATIONS}{Where this sits, and where it connects}
+
+	\vspace{2mm}
+	{\small
+		\begin{itemize}
+			\setlength{\itemsep}{2.6mm}
+			\item {\bfseries\textcolor{blue}{An exact, concrete case study}}
+			      \begin{itemize}\tightlist\scriptsize
+				      \item The NTK spectral-bias mechanism, usually argued asymptotically or shown empirically, made explicit on $S^1$, where every rate is a computable eigenvalue (\textcolor{muted}{\href{https://arxiv.org/abs/1806.07572}{Jacot et al., 2018}}; \textcolor{muted}{\href{https://arxiv.org/abs/1806.08734}{Rahaman et al., 2019}}).
+			      \end{itemize}
+
+			\item {\bfseries\textcolor{green}{Finite scale, not only the limit}}
+			      \begin{itemize}\tightlist\scriptsize
+				      \item The infinite-width NTK is often treated as a purely asymptotic object; we add non-asymptotic bounds on a low-frequency block, alongside work probing finite-width corrections and the kernel picture's limits (\textcolor{muted}{\href{https://arxiv.org/abs/1909.05989}{Hanin \& Nica, 2019}}; \textcolor{muted}{\href{https://arxiv.org/abs/2206.10012}{Vyas et al., 2022}}).
+			      \end{itemize}
+
+			\item {\bfseries\textcolor{orange}{A baseline, not the whole story}}
+			      \begin{itemize}\tightlist\scriptsize
+				      \item The fixed kernel predicts the rates while it stays lazy, but is not a full account once features are learned; this work marks where that reduction stops (\textcolor{muted}{\href{https://arxiv.org/abs/1812.07956}{Chizat et al., 2019}}).
+			      \end{itemize}
+
+			\item {\bfseries\textcolor{purple}{Connects to practice}}
+			      \begin{itemize}\tightlist\scriptsize
+				      \item The same spectrum PINNs rescale to fix high-frequency failure (\textcolor{muted}{\href{https://arxiv.org/abs/2007.14527}{Wang et al., 2022}}), and that Fourier features and SIREN reshape for coordinate networks (\textcolor{muted}{\href{https://arxiv.org/abs/2006.10739}{Tancik et al., 2020}}; \textcolor{muted}{\href{https://arxiv.org/abs/2006.09661}{Sitzmann et al., 2020}}).
+			      \end{itemize}
+		\end{itemize}
+	}
+
+	\vspace{1.5mm}
+	{\scriptsize\textcolor{muted}{Still, a result on the uniform circle is far from a guarantee about a deployed model.}}
 \end{frame}
 
 % ------------------------------------------------------------------
@@ -1365,7 +1439,7 @@
 	\begin{bluecard}[width=0.8\linewidth]
 		\centering
 		{\large\bfseries Fourier structure survives finite scale, but kernel evolution changes the story.}\par\vspace{2mm}
-		{\scriptsize In the lazy regimes it predicts the rates; at small width, training actively reinforces the low-frequency bias by increasing low-frequency operator strength.}
+		{\scriptsize In the lazy regimes it predicts the rates; once the kernel evolves we observe increased low-frequency spectral strength alongside lower training error, but the cause is still open.}
 	\end{bluecard}
 
 	\vspace{6mm}
@@ -1393,8 +1467,52 @@
 % ------------------------------------------------------------------
 \begin{frame}[noframenumbering]
 	\slidetitle{}{NTK: from parameter updates to an operator on functions}
-	\vspace{2mm}
-	\placeholder[40mm]{[Backup] Derivation of the NTK: how gradient descent on weights becomes $\partial_t r_t = -T_t r_t$}
+	{\textcolor{muted}{Gradient flow on the weights induces a linear flow on the residual, governed by an operator built from the network's own gradients.}}
+
+	\vspace{1.5mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.5\textwidth}
+			\begin{whitecard}[height=44mm]
+				{\scriptsize\bfseries Setup}\par\vspace{1mm}
+				{\scriptsize Least-squares loss on $L^2(\mu)$, with residual $r_t=f_t-y$:}\par\vspace{-1.5mm}
+				{\scriptsize
+				\[
+					\mathcal L(\theta)=\tfrac12\|f_m(\cdot;\theta)-y\|_{L^2(\mu)}^2 .
+				\]
+				}
+				\vspace{-3mm}\par
+				{\scriptsize The empirical NTK is the gradient inner product}\par\vspace{-1.5mm}
+				{\scriptsize
+					\[
+						\Theta_t^{(m)}(\varphi,\psi)=\bigl\langle\nabla_\theta f_t(\varphi),\nabla_\theta f_t(\psi)\bigr\rangle,
+					\]
+				}
+				\vspace{-3mm}\par
+				{\scriptsize with operator $\;(T_t^{(m)}f)(\varphi)=\int \Theta_t^{(m)}(\varphi,\psi)f(\psi)\,d\mu(\psi)$.}
+			\end{whitecard}
+		\end{column}
+		\begin{column}{0.5\textwidth}
+			\begin{bluecard}[height=44mm]
+				{\scriptsize\bfseries Residual flow}\par\vspace{1mm}
+				{\scriptsize Gradient flow on $\theta$ and the chain rule give a linear flow on the residual:}\par\vspace{-1mm}
+				{\scriptsize
+				\[
+					\partial_t r_t=-T_t^{(m)}r_t,
+					\qquad
+					\tfrac{d}{dt}\tfrac12\|r_t\|^2=-\langle r_t,T_t^{(m)}r_t\rangle .
+				\]
+				}
+				\vspace{-2mm}\par
+				{\scriptsize\bfseries Two regimes inside one equation:}
+				\begin{itemize}\tightlist\scriptsize
+					\item \textcolor{blue}{Frozen}: replace $T_t^{(m)}$ by $T_0^{(m)}$ (kernel regression on the initial features).
+					\item \textcolor{orange}{Evolving}: keep the full time dependence of $T_t^{(m)}$.
+				\end{itemize}
+				\vspace{0.5mm}
+				{\tiny\textcolor{muted}{As $m\to\infty$, $T_0^{(m)}\to T$, the deterministic continuum operator.}}
+			\end{bluecard}
+		\end{column}
+	\end{columns}
 \end{frame}
 
 % ------------------------------------------------------------------
@@ -1403,8 +1521,9 @@
 \begin{frame}[noframenumbering]
 	\slidetitle{}{Finite-scale bounds: precise statements}
 	{\textcolor{muted}{$\mathcal H_K$: span of the Fourier modes up to frequency $K$, $d=2K+1$; $\Phi$: those modes evaluated at the $n$ samples; $\|\cdot\|_{\max}$: entrywise max.}}
+	{\tiny\textcolor{muted}{Main-slide notation: \(T_K^{(n)}\) corresponds to \(H\), and \(T_K^{(m)}\) corresponds to \(B_m^{(K)}\).}}
 
-	\vspace{1.5mm}
+	\vspace{1mm}
 	\begin{columns}[T,onlytextwidth]
 		\begin{column}{0.52\textwidth}
 			\begin{yellowcard}
@@ -1412,7 +1531,7 @@
 				{\scriptsize Sampled kernel, Gram, and compressed operator:}\par\vspace{-1.5mm}
 				{\scriptsize
 					\[
-						A_{ij}=\tfrac1n T_\infty(\theta_i,\theta_j),
+						A_{ij}=\tfrac1n T(\theta_i,\theta_j),
 						\qquad
 						G=\tfrac1n\Phi^\top\Phi,
 						\qquad
@@ -1451,7 +1570,7 @@
 				\[
 					B_m^{(K)}=P_K T_0^{(m)} P_K,
 					\qquad
-					\Lambda_K=P_K T_\infty P_K
+					\Lambda_K=P_K T P_K
 				\]
 				}
 				\vspace{-3.5mm}\par
@@ -1474,6 +1593,90 @@
 			\end{purplecard}
 		\end{column}
 	\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{Finite samples: observed mode decay tracks the eigenvalue prediction}
+	{\textcolor{muted}{$n=4096$ uniform samples. Solid: observed normalised amplitude $|\alpha_p(t)|/|\alpha_p(0)|$. Dashed: diagonal finite-sample prediction from $\lambda_p^{(n)}$.}}
+
+	\vspace{1.5mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=37mm,keepaspectratio]{story_02_random_n4096_components_first200.png}\par
+				{\tiny First 200 steps: low frequencies decay first, matching the prediction.}
+			\end{whitecard}
+		\end{column}
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=37mm,keepaspectratio]{story_02_random_n4096_components_all_steps_high_freq_only.png}\par
+				{\tiny Longer horizon: the prediction holds until a component becomes small, then deviates.}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{1mm}
+	\begin{whitecard}[height=8mm,valign=center]
+		\centering
+		{\scriptsize Sampling turns the exact continuum diagonal dynamics into an approximate low-frequency description, with deviations once a mode has nearly decayed.}
+	\end{whitecard}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{Preconditioning: rescale each retained mode by its eigenvalue}
+	{\textcolor{muted}{The fixed-kernel dynamics are linear with per-mode rate $\lambda_p$. Rescaling the retained Fourier block flattens the rates. Theory: divide by predicted $\lambda_p^{(n)}$. Empirical: invert the observed block $C=G^{-1}H$.}}
+
+	\vspace{1.5mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=37mm,keepaspectratio]{all_mode_decay_three_panel_mean_std_n4096.png}\par
+				{\tiny Both preconditioners flatten the retained-mode decay; empirical is most uniform.}
+			\end{whitecard}
+		\end{column}
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=37mm,keepaspectratio]{probe_target_vs_prediction_three_panel_mean_std_n4096.png}\par
+				{\tiny The retained components reach a much smaller error on the probe grid.}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{Preconditioning: the two floors that limit it}
+	{\textcolor{muted}{The preconditioner is built only on the retained block, and is solved in finite precision. Each limit shows up as a different plateau.}}
+
+	\vspace{1.5mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=37mm,keepaspectratio]{out_of_block_all_mode_decay_three_panel_mean_std_n4096.png}\par
+				{\tiny Out-of-block modes ($k=10,12$) stay near their start; in-block modes plateau higher from coupling.}
+			\end{whitecard}
+		\end{column}
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=37mm,keepaspectratio]{mode_decay_fp32_vs_fp64_three_panel_mean_std_n4096.png}\par
+				{\tiny fp32 (solid) vs fp64 (dashed): the preconditioned plateau drops by orders of magnitude, so that floor is numerical ($\sim\kappa u$).}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{1mm}
+	\begin{whitecard}[height=8mm,valign=center]
+		\centering
+		{\scriptsize The block correction is explicit and cheap, but acts only inside the retained block and bottoms out at the conditioning-set precision floor.}
+	\end{whitecard}
 \end{frame}
 
 % ------------------------------------------------------------------
@@ -1525,36 +1728,253 @@
 % ------------------------------------------------------------------
 \begin{frame}[noframenumbering]
 	\slidetitle{}{Computing the eigenvalues $\lambda_k$}
-	\vspace{2mm}
-	\placeholder[40mm]{[Backup] Integral computation of $\lambda_k$ for the ReLU NTK on $S^1$; verification against the explicit cases $k=0,1$}
+	{\textcolor{muted}{The eigenvalues are the Fourier coefficients of the convolution kernel $\Theta(\delta)$.}}
+
+	\vspace{1.5mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.52\textwidth}
+			\begin{whitecard}[height=46mm]
+				{\scriptsize\bfseries From gradients to a closed-form kernel}\par\vspace{1mm}
+				{\scriptsize At init ($a_i,w_i\sim\mathcal N(0,I)$, $b_i=0$), the width-$m$ NTK concentrates on}\par\vspace{-1.5mm}
+				{\scriptsize
+					\[
+						\Theta(x,y)=K_0+(x^\top y+1)K_1,
+					\]
+				}
+				\vspace{-3mm}\par
+				{\scriptsize with the ReLU expectations (angle $\delta$, $\cos\delta=x^\top y$)}\par\vspace{-1.5mm}
+				{\scriptsize
+					\[
+						K_1=\tfrac{\pi-\delta}{2\pi},
+						\quad
+						K_0=\tfrac{1}{2\pi}\bigl(\sin\delta+(\pi-\delta)\cos\delta\bigr),
+					\]
+				}
+				\vspace{-3mm}\par
+				{\scriptsize so that}\par\vspace{-2mm}
+				{\scriptsize
+					\[
+						\Theta(\delta)=\tfrac{1}{2\pi}\bigl(\sin\delta+2(\pi-\delta)\cos\delta+(\pi-\delta)\bigr).
+					\]
+				}
+			\end{whitecard}
+		\end{column}
+		\begin{column}{0.46\textwidth}
+			\begin{bluecard}[height=46mm]
+				{\scriptsize\bfseries Convolution $\Rightarrow$ Fourier diagonal}\par\vspace{1mm}
+				{\scriptsize $\Theta$ depends only on $\delta=\varphi-\psi$, so $T$ is a convolution and}\par\vspace{-1.5mm}
+				{\scriptsize
+					\[
+						\lambda_k=\frac{1}{\pi}\int_0^\pi \Theta(\delta)\cos(k\delta)\,d\delta .
+					\]
+				}
+				\vspace{-2.5mm}\par
+				{\scriptsize The parity integral $\int_0^\pi(\pi-\delta)\cos(m\delta)\,d\delta=\tfrac{1-(-1)^m}{m^2}$ splits even and odd $k$:}\par\vspace{0.5mm}
+				{\scriptsize
+					\[
+						\lambda_0=\tfrac14+\tfrac{3}{\pi^2},\quad
+						\lambda_1=\tfrac14+\tfrac{1}{\pi^2},
+					\]
+					\[
+						\lambda_k=\begin{cases}\tfrac{k^2+3}{\pi^2(k^2-1)^2}, & k\ge2\text{ even},\\[1mm]\tfrac{1}{\pi^2 k^2}, & k\ge3\text{ odd}.\end{cases}
+					\]
+				}
+			\end{bluecard}
+		\end{column}
+	\end{columns}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}[noframenumbering]
-	\slidetitle{}{The $k=2$ anomaly}
+	\slidetitle{}{The $k=2$ alignment anomaly}
+	{\textcolor{muted}{$\lambda_2$ follows the generic even-$k$ formula normally. The anomaly is in the geometry: at finite width, $k=2$ is unusually well aligned with its Fourier subspace.}}
+
 	\vspace{2mm}
-	\placeholder[40mm]{[Backup] Why $\lambda_2$ does not follow the generic even-$k$ formula; how the $k^2-1$ denominator is modified at $k=2$}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.5\textwidth}
+			\begin{whitecard}[height=40mm]
+				{\scriptsize\bfseries Observation}\par\vspace{1mm}
+				\begin{itemize}\tightlist\scriptsize
+					\item Projector error grows with frequency, as expected, with one exception: $k=2$ has the smallest error among the displayed frequencies.
+					\item It is also the best aligned, sitting above its neighbours rather than on the decreasing trend.
+				\end{itemize}
+			\end{whitecard}
+		\end{column}
+		\begin{column}{0.5\textwidth}
+			\begin{bluecard}[height=40mm]
+				{\scriptsize\bfseries A tentative explanation}\par\vspace{1mm}
+				\begin{itemize}\tightlist\scriptsize
+					\item $k=0$ gets a direct eigenvalue from the bias; $k=1$ is tied to the coordinate embedding and is the only odd mode in the no-bias kernel.
+					\item The finite-width perturbation may therefore act differently on $k=0,1$ than on higher blocks, leaving $k=2$ relatively favoured.
+				\end{itemize}
+				\vspace{0.5mm}
+				{\tiny\textcolor{muted}{This is an empirical observation, not a theoretical claim; the mechanism is not investigated further.}}
+			\end{bluecard}
+		\end{column}
+	\end{columns}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}[noframenumbering]
-	\slidetitle{}{Strict ordering: where it holds and where it does not}
-	\vspace{2mm}
-	\placeholder[40mm]{[Backup] Conditions under which $\lambda_k > \lambda_{k+1}$; counterexamples or caveats near the transition between even and odd cases}
+	\slidetitle{}{Eigenvalue ordering: where it holds, and what it depends on}
+	{\textcolor{muted}{Because the domain and measure are rotation-symmetric, the eigenvalue ordering is also a frequency ordering. The trainable bias is what keeps it strict.}}
+
+	\vspace{1.5mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.46\textwidth}
+			\begin{whitecard}[height=42mm]
+				{\scriptsize\bfseries The spectrum is strictly decreasing}\par\vspace{1mm}
+				{\scriptsize
+					\begin{tabular}{@{}ll@{}}
+						$\lambda_0\approx0.554$  & $\lambda_1\approx0.351$  \\
+						$\lambda_2\approx0.079$  & $\lambda_3\approx0.011$  \\
+						$\lambda_4\approx0.0086$ & $\lambda_5\approx0.0041$ \\
+					\end{tabular}
+				}\par\vspace{1.5mm}
+				{\scriptsize Two interleaved subsequences (even and odd $k$), both $O(k^{-2})$, with $\lambda_k>\lambda_{k+1}$ throughout.}
+			\end{whitecard}
+		\end{column}
+		\begin{column}{0.52\textwidth}
+			\begin{orangecard}[height=42mm]
+				{\scriptsize\bfseries What the ordering depends on}\par\vspace{1mm}
+				\begin{itemize}\tightlist\scriptsize
+					\item The gap between $k=0,1$ and the rest comes from the constant and the coordinate embedding.
+					\item The odd modes $k\ge3$ are nonzero \emph{only} because of the trainable hidden bias. Without it, $\lambda^{(\mathrm{nb})}_k=0$ for odd $k\ge3$, so those modes are null and never learned by the fixed kernel.
+					\item Even $k\ge2$ are unchanged by the bias.
+				\end{itemize}
+				\vspace{0.5mm}
+				{\tiny\textcolor{muted}{Consistent with bias-free two-layer ReLU models not expressing odd harmonics beyond $k=1$.}}
+			\end{orangecard}
+		\end{column}
+	\end{columns}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}[noframenumbering]
-	\slidetitle{}{Why $k=0$ and $k=1$ gain strength: a hypothesis and its test}
-	\vspace{2mm}
-	\placeholder[40mm]{[Backup] Parameterisation hypothesis; proposed clean test (target with no $k=0,1$ component)}
+	\slidetitle{}{Why $k=0,1$ gain strength: the parameterisation hypothesis}
+	{\textcolor{muted}{With inputs $x(\varphi)=(\cos\varphi,\sin\varphi)$, the pre-activation $w_j^\top x+b_j=\|w_j\|\cos(\varphi-\psi_j)+b_j$ already contains $k=0,1$; higher harmonics appear only once the ReLU acts. The network may strengthen the directions it represents most directly.}}
+
+	\vspace{1.5mm}
+	{\scriptsize\bfseries Control: equal target amplitudes across all modes.}\par
+	\vspace{1mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=33mm,keepaspectratio]{equal-amp/spectral_strength_by_freq_w128.png}\par
+				{\tiny $m=128$: strength still concentrates on $k=0,1$.}
+			\end{whitecard}
+		\end{column}
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=33mm,keepaspectratio]{equal-amp/spectral_strength_by_freq_w1024.png}\par
+				{\tiny $m=1024$: same direction, much weaker.}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{1mm}
+	\begin{bluecard}[height=8mm,valign=center]
+		\centering
+		{\scriptsize Even with equal target mass, the gain favours $k=0,1$, so it is not just tracking where the target places its mass.}
+	\end{bluecard}
 \end{frame}
 
 % ------------------------------------------------------------------
 \begin{frame}[noframenumbering]
-	\slidetitle{}{Mean-field and preconditioning views}
+	\slidetitle{}{A sharper probe: remove the lowest frequencies from the target}
+	{\textcolor{muted}{Target restricted to $k\ge 3$ (no $k=0,1,2$ component). This separates two accounts: parameterisation (the gain stays on $k=0,1$, the directions the input embedding and bias represent directly) versus amplifying the largest residual (the gain follows the lowest \emph{present} frequency).}}
+
+	\vspace{1.5mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=34mm,keepaspectratio]{no-k01/spectral_strength_by_freq_allfreq_w128.png}\par
+				{\tiny $m=128$: $k=0,1$ still gain the most strength, though absent from the target.}
+			\end{whitecard}
+		\end{column}
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=34mm,keepaspectratio]{no-k01/train_mse_frozen_vs_evolving_w128.png}\par
+				{\tiny $m=128$: evolving reaches lower training error than frozen, with $k=0,1,2$ removed.}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{1mm}
+	\begin{bluecard}[height=11mm,valign=center]
+		\centering
+		{\tiny The strength gain still concentrates on $k=0,1$ although they are absent from the target, favouring the parameterisation account. This is one architecture on $S^1$ and a correlation, not an established cause.}
+	\end{bluecard}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{Low-frequency strength gain is robust across amplitude configs}
+	{\textcolor{muted}{Cumulative low-frequency strength $\mu_{\le k_{\max}}(t)$ for three amplitude profiles of the target: original, equal, and reversed (largest amplitudes on the highest frequencies).}}
+
+	\vspace{1.5mm}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=37mm,keepaspectratio]{total_cumulative_mu_amp_configs_w128.png}\par
+				{\tiny $m=128$: all three evolving configs rise well above the frozen baseline.}
+			\end{whitecard}
+		\end{column}
+		\begin{column}{0.49\textwidth}
+			\begin{whitecard}[left=0.8mm,right=0.8mm,top=1mm,bottom=1mm]
+				\centering
+				\includegraphics[width=\linewidth,height=37mm,keepaspectratio]{total_cumulative_mu_amp_configs_w1024.png}\par
+				{\tiny $m=1024$: same ordering, smaller increase.}
+			\end{whitecard}
+		\end{column}
+	\end{columns}
+
+	\vspace{1mm}
+	\begin{bluecard}[height=11mm,valign=center]
+		\centering
+		{\tiny The increase is largest for the equal-amplitude target and still clear for the reversed one, which puts more mass on high frequencies. So the low-frequency strength gain is not a consequence of the original target placing larger amplitudes on lower frequencies.}
+	\end{bluecard}
+\end{frame}
+
+% ------------------------------------------------------------------
+\begin{frame}[noframenumbering]
+	\slidetitle{}{Mean-field viewpoint: a complementary large-width limit}
+	{\textcolor{muted}{The NTK is one way to take width to infinity. The mean-field limit is another, and it is what makes the evolving-kernel regime natural.}}
+
 	\vspace{2mm}
-	\placeholder[40mm]{[Backup] Mean-field interpretation of infinite-width limit; preconditioning perspective on spectral bias}
+	\begin{columns}[T,onlytextwidth]
+		\begin{column}{0.5\textwidth}
+			\begin{bluecard}[height=42mm]
+				{\scriptsize\textcolor{blue}{\bfseries NTK / lazy limit}}\par\vspace{1mm}
+				\begin{itemize}\tightlist\scriptsize
+					\item Track a \emph{fixed} tangent operator at initialization.
+					\item On $S^1$ it is diagonal in the Fourier basis, so learning is read off eigenvalues and eigenspaces.
+					\item Features barely move; this is the regime our bounds control.
+				\end{itemize}
+			\end{bluecard}
+		\end{column}
+		\begin{column}{0.5\textwidth}
+			\begin{orangecard}[height=42mm]
+				{\scriptsize\textcolor{orange}{\bfseries Mean-field limit}}\par\vspace{1mm}
+				{\scriptsize With scaling $f_\theta=\tfrac1m\sum_\alpha v_\alpha\varphi(w_\alpha^\top x)$, the output depends on the neurons only through their empirical measure}\par\vspace{-1.5mm}
+				{\scriptsize
+					\[
+						\mu_m=\tfrac1m\textstyle\sum_\alpha \delta_{\theta_\alpha}\;\longrightarrow\;\mu_t .
+					\]
+				}
+				\vspace{-2mm}\par
+				\begin{itemize}\tightlist\scriptsize
+					\item Training is a flow of the \emph{distribution} of neurons, not a fixed kernel.
+					\item This is the language for the feature-learning side where the kernel evolves.
+				\end{itemize}
+			\end{orangecard}
+		\end{column}
+	\end{columns}
 \end{frame}
 
 % ------------------------------------------------------------------
